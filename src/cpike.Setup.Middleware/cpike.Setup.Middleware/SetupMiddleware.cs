@@ -30,6 +30,11 @@ public class SetupMiddleware
         _next = next;
         _options = options.Value;
         _logger = logger;
+
+        _logger.LogInformation(
+            "SetupMiddleware initialized. Setup path: {SetupPath}, Excluded paths: {ExcludedPaths}",
+            _options.SetupPath,
+            string.Join(", ", _options.ExcludedPaths));
     }
 
     /// <summary>
@@ -40,18 +45,22 @@ public class SetupMiddleware
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task InvokeAsync(HttpContext context, ISetupCompletionService completionService)
     {
+        var requestPath = context.Request.Path.Value ?? string.Empty;
+
         // Quick exit: Check if setup is complete (most common case in production)
         if (await completionService.IsSetupCompleteAsync())
         {
+            _logger.LogTrace("Setup is complete. Allowing request to {Path}", requestPath);
             await _next(context);
             return;
         }
 
-        var requestPath = context.Request.Path.Value ?? string.Empty;
+        _logger.LogDebug("Setup is not complete. Evaluating access for {Path}", requestPath);
 
         // Allow access to excluded paths (Blazor framework files, health checks, etc.)
         if (IsPathExcluded(requestPath))
         {
+            _logger.LogDebug("Path {Path} is in excluded paths list. Allowing access", requestPath);
             await _next(context);
             return;
         }
@@ -59,12 +68,13 @@ public class SetupMiddleware
         // Allow access to setup wizard itself
         if (requestPath.StartsWith(_options.SetupPath, StringComparison.OrdinalIgnoreCase))
         {
+            _logger.LogDebug("Request is for setup wizard path {SetupPath}. Allowing access", _options.SetupPath);
             await _next(context);
             return;
         }
 
         // Setup not complete and not accessing setup wizard - redirect
-        _logger.LogDebug("Setup not complete. Redirecting {Path} to {SetupPath}",
+        _logger.LogInformation("Setup not complete and path {Path} not excluded. Redirecting to {SetupPath}",
             requestPath, _options.SetupPath);
 
         context.Response.Redirect(_options.SetupPath);

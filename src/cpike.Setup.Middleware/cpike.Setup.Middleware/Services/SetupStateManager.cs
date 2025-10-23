@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
 
 namespace cpike.Setup.Middleware.Services;
 
@@ -9,6 +10,16 @@ namespace cpike.Setup.Middleware.Services;
 public class SetupStateManager : ISetupStateManager
 {
     private readonly ConcurrentDictionary<string, object> _state = new();
+    private readonly ILogger<SetupStateManager> _logger;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SetupStateManager"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    public SetupStateManager(ILogger<SetupStateManager> logger)
+    {
+        _logger = logger;
+    }
 
     /// <inheritdoc />
     public void Set<T>(string key, T value)
@@ -19,10 +30,12 @@ public class SetupStateManager : ISetupStateManager
         if (value == null)
         {
             _state.TryRemove(key, out _);
+            _logger.LogDebug("Removed state value for key: {Key}", key);
         }
         else
         {
             _state[key] = value;
+            _logger.LogDebug("Set state value for key: {Key} (Type: {Type})", key, typeof(T).Name);
         }
     }
 
@@ -32,9 +45,18 @@ public class SetupStateManager : ISetupStateManager
         if (string.IsNullOrWhiteSpace(key))
             throw new ArgumentException("Key cannot be null or whitespace.", nameof(key));
 
-        return _state.TryGetValue(key, out var value) && value is T typedValue
-            ? typedValue
-            : default;
+        var found = _state.TryGetValue(key, out var value) && value is T typedValue;
+
+        if (found)
+        {
+            _logger.LogTrace("Retrieved state value for key: {Key}", key);
+        }
+        else
+        {
+            _logger.LogTrace("State value not found or type mismatch for key: {Key} (Expected type: {Type})", key, typeof(T).Name);
+        }
+
+        return found ? (T?)value : default;
     }
 
     /// <inheritdoc />
@@ -68,13 +90,22 @@ public class SetupStateManager : ISetupStateManager
         if (string.IsNullOrWhiteSpace(key))
             throw new ArgumentException("Key cannot be null or whitespace.", nameof(key));
 
-        return _state.TryRemove(key, out _);
+        var removed = _state.TryRemove(key, out _);
+
+        if (removed)
+        {
+            _logger.LogDebug("Removed state value for key: {Key}", key);
+        }
+
+        return removed;
     }
 
     /// <inheritdoc />
     public void Clear()
     {
+        var keyCount = _state.Count;
         _state.Clear();
+        _logger.LogDebug("Cleared all state values. Removed {Count} entries", keyCount);
     }
 
     /// <inheritdoc />

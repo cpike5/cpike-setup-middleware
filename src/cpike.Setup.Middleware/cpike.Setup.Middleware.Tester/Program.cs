@@ -42,6 +42,13 @@ namespace cpike.Setup.Middleware.Tester
 
             builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
+            // Register setup wizard services
+            builder.Services.AddSetupWizard(setup =>
+            {
+                // Configure setup steps here
+                // Example: setup.AddStep<YourSetupStep>();
+            });
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
