@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aspnet-cpike.Setup.Middleware.Tester-bfd7c004-f18b-4672-9ee7-9c4bf11c1086</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.20" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.20" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.20" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.20" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\cpike.Setup.Middleware\cpike.Setup.Middleware.csproj" />
+  </ItemGroup>
+
+</Project>

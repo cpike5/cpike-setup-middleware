@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First-Time Setup Wizard - cpike.ca</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #fafafa;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        /* Wizard Container */
+        .wizard-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+            max-width: 700px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* Logo */
+        .logo {
+            font-variant: small-caps;
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 0.1em;
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Wizard Header */
+        .wizard-header {
+            padding: 2rem 2rem 1rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .wizard-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .wizard-subtitle {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        /* Progress Indicator */
+        .progress-container {
+            padding: 1.5rem 2rem;
+            background: #f8f9fa;
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-line {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e0e0e0;
+            z-index: 0;
+        }
+
+        .progress-line-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            transition: width 0.3s ease;
+        }
+
+        .progress-step {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        .step-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #999;
+            transition: all 0.3s ease;
+        }
+
+        .progress-step.active .step-circle {
+            border-color: #3498db;
+            background: #3498db;
+            color: white;
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+        }
+
+        .progress-step.completed .step-circle {
+            border-color: #3498db;
+            background: #3498db;
+            color: white;
+        }
+
+        .step-label {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: #999;
+            text-align: center;
+            max-width: 80px;
+        }
+
+        .progress-step.active .step-label {
+            color: #3498db;
+            font-weight: 500;
+        }
+
+        .progress-step.completed .step-label {
+            color: #666;
+        }
+
+        /* Wizard Body */
+        .wizard-body {
+            padding: 2rem;
+            min-height: 400px;
+        }
+
+        .wizard-step {
+            display: none;
+        }
+
+        .wizard-step.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Step Content */
+        .step-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .step-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .step-description {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+        }
+
+        .form-hint {
+            font-size: 0.875rem;
+            color: #999;
+            margin-top: 0.25rem;
+        }
+
+        /* Password Strength Indicator */
+        .password-strength {
+            margin-top: 0.5rem;
+        }
+
+        .strength-bar {
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 0.25rem;
+        }
+
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+
+        .strength-fill.weak {
+            width: 33%;
+            background: #dc3545;
+        }
+
+        .strength-fill.medium {
+            width: 66%;
+            background: #ffc107;
+        }
+
+        .strength-fill.strong {
+            width: 100%;
+            background: #28a745;
+        }
+
+        .strength-text {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        /* Checkbox Group */
+        .checkbox-group {
+            margin-bottom: 1rem;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 0.75rem;
+            border: 1px solid #e8f4f8;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item:hover {
+            border-color: #3498db;
+            background: rgba(52, 152, 219, 0.02);
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 0.75rem;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-content {
+            flex: 1;
+        }
+
+        .checkbox-label {
+            font-weight: 500;
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .checkbox-description {
+            font-size: 0.875rem;
+            color: #666;
+        }
+
+        .checkbox-item input[type="checkbox"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Toggle Switch */
+        .toggle-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border: 1px solid #e8f4f8;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .toggle-content {
+            flex: 1;
+            margin-right: 1rem;
+        }
+
+        .toggle-label {
+            font-weight: 500;
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .toggle-description {
+            font-size: 0.875rem;
+            color: #666;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #3498db;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        /* Alert */
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left-color: #17a2b8;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left-color: #ffc107;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left-color: #28a745;
+        }
+
+        /* Review Summary */
+        .summary-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .summary-value {
+            color: #2c3e50;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        /* Success State */
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem auto;
+            color: white;
+            font-size: 3rem;
+        }
+
+        .success-content {
+            text-align: center;
+        }
+
+        .code-display {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            position: relative;
+        }
+
+        .code-label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .code-value {
+            color: #3498db;
+            user-select: all;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border: none;
+            border-radius: 4px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            padding: 0.6rem 1.5rem;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #555;
+            border: 1px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+            border-color: #ccc;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #3498db;
+            border: 1px solid #3498db;
+        }
+
+        .btn-outline:hover {
+            background: #3498db;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .btn-large {
+            padding: 0.8rem 2rem;
+            font-size: 1.125rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Wizard Footer */
+        .wizard-footer {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .wizard-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .wizard-container {
+                margin: 1rem;
+            }
+
+            .wizard-body {
+                padding: 1.5rem;
+            }
+
+            .wizard-header {
+                padding: 1.5rem;
+            }
+
+            .progress-steps {
+                flex-wrap: wrap;
+            }
+
+            .step-label {
+                display: none;
+            }
+
+            .wizard-footer {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .wizard-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .wizard-actions button {
+                width: 100%;
+            }
+        }
+
+        /* Feature List */
+        .feature-list {
+            margin: 1.5rem 0;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: start;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .feature-icon {
+            width: 24px;
+            height: 24px;
+            background: #3498db;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+            font-size: 0.875rem;
+        }
+
+        .feature-text {
+            color: #555;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="wizard-container">
+        <!-- Header -->
+        <div class="wizard-header">
+            <div class="logo">cpike.ca</div>
+            <h1 class="wizard-title">First-Time Setup</h1>
+            <p class="wizard-subtitle">Let's configure your system in just a few steps</p>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div class="progress-container">
+            <div class="progress-steps">
+                <div class="progress-line">
+                    <div class="progress-line-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <div class="progress-step active" data-step="1">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">Welcome</div>
+                </div>
+                <div class="progress-step" data-step="2">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">Admin</div>
+                </div>
+                <div class="progress-step" data-step="3">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Roles</div>
+                </div>
+                <div class="progress-step" data-step="4">
+                    <div class="step-circle">4</div>
+                    <div class="step-label">Invites</div>
+                </div>
+                <div class="progress-step" data-step="5">
+                    <div class="step-circle">5</div>
+                    <div class="step-label">Review</div>
+                </div>
+                <div class="progress-step" data-step="6">
+                    <div class="step-circle">✓</div>
+                    <div class="step-label">Complete</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wizard Body -->
+        <div class="wizard-body">
+            <!-- Step 1: Welcome -->
+            <div class="wizard-step active" id="step1">
+                <div class="step-header">
+                    <h2 class="step-title">Welcome to cpike.ca</h2>
+                    <p class="step-description">This wizard will help you set up your system for the first time. The process should take just a few minutes.</p>
+                </div>
+
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <div class="feature-icon">✓</div>
+                        <div class="feature-text">Create your administrator account with secure credentials</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">✓</div>
+                        <div class="feature-text">Configure system roles and permissions</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">✓</div>
+                        <div class="feature-text">Set up the invite system for user registration</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">✓</div>
+                        <div class="feature-text">Review and confirm your settings</div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>Important:</strong> This setup wizard can only be run once. Make sure to save any generated credentials securely.
+                </div>
+            </div>
+
+            <!-- Step 2: Administrator Account -->
+            <div class="wizard-step" id="step2">
+                <div class="step-header">
+                    <h2 class="step-title">Create Administrator Account</h2>
+                    <p class="step-description">This account will have full access to all system features and settings.</p>
+                </div>
+
+                <form id="adminForm">
+                    <div class="form-group">
+                        <label for="adminEmail">Email Address</label>
+                        <input type="email" id="adminEmail" class="form-input" placeholder="admin@example.com" required>
+                        <div class="form-hint">You'll use this email to sign in to your account</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adminPassword">Password</label>
+                        <input type="password" id="adminPassword" class="form-input" placeholder="Enter a strong password" required>
+                        <div class="password-strength">
+                            <div class="strength-bar">
+                                <div class="strength-fill" id="strengthFill"></div>
+                            </div>
+                            <div class="strength-text" id="strengthText">Password strength: <span id="strengthLevel">Not set</span></div>
+                        </div>
+                        <div class="form-hint">Minimum 8 characters with uppercase, lowercase, number, and symbol</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input type="password" id="confirmPassword" class="form-input" placeholder="Re-enter your password" required>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 3: System Roles -->
+            <div class="wizard-step" id="step3">
+                <div class="step-header">
+                    <h2 class="step-title">Configure System Roles</h2>
+                    <p class="step-description">Select which roles to create in your system. These define permission levels for users.</p>
+                </div>
+
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="roleAdmin" checked disabled>
+                        <div class="checkbox-content">
+                            <label for="roleAdmin" class="checkbox-label">Administrator</label>
+                            <div class="checkbox-description">Full system access including user management, content, and settings</div>
+                        </div>
+                    </div>
+
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="roleModerator" checked>
+                        <div class="checkbox-content">
+                            <label for="roleModerator" class="checkbox-label">Moderator</label>
+                            <div class="checkbox-description">Can manage users and content, publish blog posts</div>
+                        </div>
+                    </div>
+
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="roleEditor" checked>
+                        <div class="checkbox-content">
+                            <label for="roleEditor" class="checkbox-label">Editor</label>
+                            <div class="checkbox-description">Can create and edit blog posts and manage categories</div>
+                        </div>
+                    </div>
+
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="roleUser" checked>
+                        <div class="checkbox-content">
+                            <label for="roleUser" class="checkbox-label">User</label>
+                            <div class="checkbox-description">Basic access to view content</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>Note:</strong> The Administrator role is required and cannot be disabled. You can add or modify roles later from the admin panel.
+                </div>
+            </div>
+
+            <!-- Step 4: Invite System -->
+            <div class="wizard-step" id="step4">
+                <div class="step-header">
+                    <h2 class="step-title">Configure Invite System</h2>
+                    <p class="step-description">Control how new users can register for your system.</p>
+                </div>
+
+                <div class="toggle-group">
+                    <div class="toggle-item">
+                        <div class="toggle-content">
+                            <label class="toggle-label">Require Invite Code for Registration</label>
+                            <div class="toggle-description">When enabled, users must have a valid invite code to create an account</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="requireInvite" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-item">
+                        <div class="toggle-content">
+                            <label class="toggle-label">Generate Initial Invite Code</label>
+                            <div class="toggle-description">Create a temporary invite code that you can use to invite the first users</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="generateInvite" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning">
+                    <strong>Security Tip:</strong> Requiring invite codes helps prevent unauthorized access to your system. The generated invite code will expire in 30 days.
+                </div>
+            </div>
+
+            <!-- Step 5: Review & Confirm -->
+            <div class="wizard-step" id="step5">
+                <div class="step-header">
+                    <h2 class="step-title">Review Your Settings</h2>
+                    <p class="step-description">Please review your configuration before completing setup.</p>
+                </div>
+
+                <div class="summary-section">
+                    <div class="summary-title">Administrator Account</div>
+                    <div class="summary-item">
+                        <span class="summary-label">Email:</span>
+                        <span class="summary-value" id="reviewEmail">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Password:</span>
+                        <span class="summary-value">••••••••</span>
+                    </div>
+                </div>
+
+                <div class="summary-section">
+                    <div class="summary-title">System Roles</div>
+                    <div class="summary-item">
+                        <span class="summary-label">Roles to create:</span>
+                        <span class="summary-value" id="reviewRoles">-</span>
+                    </div>
+                </div>
+
+                <div class="summary-section">
+                    <div class="summary-title">Invite System</div>
+                    <div class="summary-item">
+                        <span class="summary-label">Require invite code:</span>
+                        <span class="summary-value" id="reviewRequireInvite">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Generate invite code:</span>
+                        <span class="summary-value" id="reviewGenerateInvite">-</span>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning">
+                    <strong>⚠️ Important:</strong> This setup wizard can only be run once. After clicking "Complete Setup", these settings will be applied permanently. Please make sure everything is correct.
+                </div>
+            </div>
+
+            <!-- Step 6: Success -->
+            <div class="wizard-step" id="step6">
+                <div class="success-content">
+                    <div class="success-icon">✓</div>
+                    <div class="step-header">
+                        <h2 class="step-title">Setup Complete!</h2>
+                        <p class="step-description">Your system has been configured successfully.</p>
+                    </div>
+
+                    <div class="alert alert-success">
+                        <strong>Success!</strong> Your administrator account has been created and all system roles have been configured.
+                    </div>
+
+                    <div class="code-display">
+                        <div class="code-label">Administrator Credentials</div>
+                        <div class="code-value" id="successEmail">admin@example.com</div>
+                        <button class="copy-btn" onclick="copyToClipboard('successEmail')">Copy</button>
+                    </div>
+
+                    <div class="code-display" id="inviteCodeDisplay" style="display: none;">
+                        <div class="code-label">Generated Invite Code (expires in 30 days)</div>
+                        <div class="code-value" id="inviteCode">ABC123-XYZ789-DEF456</div>
+                        <button class="copy-btn" onclick="copyToClipboard('inviteCode')">Copy</button>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>⚠️ Save These Credentials:</strong> Please save your credentials securely. You can create additional invite codes from the admin panel.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wizard Footer -->
+        <div class="wizard-footer">
+            <div>
+                <button class="btn btn-secondary" id="prevBtn" onclick="previousStep()" style="display: none;">
+                    ← Previous
+                </button>
+            </div>
+            <div class="wizard-actions">
+                <button class="btn btn-outline" id="skipBtn" onclick="skipStep()" style="display: none;">
+                    Skip
+                </button>
+                <button class="btn btn-primary" id="nextBtn" onclick="nextStep()">
+                    Next →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 6;
+
+        function updateProgress() {
+            // Update progress bar
+            const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+
+            // Update step indicators
+            document.querySelectorAll('.progress-step').forEach((step, index) => {
+                const stepNum = index + 1;
+                step.classList.remove('active', 'completed');
+
+                if (stepNum < currentStep) {
+                    step.classList.add('completed');
+                } else if (stepNum === currentStep) {
+                    step.classList.add('active');
+                }
+            });
+
+            // Update wizard steps
+            document.querySelectorAll('.wizard-step').forEach((step, index) => {
+                step.classList.remove('active');
+                if (index + 1 === currentStep) {
+                    step.classList.add('active');
+                }
+            });
+
+            // Update buttons
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const skipBtn = document.getElementById('skipBtn');
+
+            prevBtn.style.display = currentStep > 1 && currentStep < 6 ? 'inline-flex' : 'none';
+
+            if (currentStep === 5) {
+                nextBtn.textContent = 'Complete Setup';
+                nextBtn.className = 'btn btn-primary btn-large';
+            } else if (currentStep === 6) {
+                nextBtn.textContent = 'Go to Login →';
+                nextBtn.className = 'btn btn-primary btn-large';
+            } else {
+                nextBtn.textContent = 'Next →';
+                nextBtn.className = 'btn btn-primary';
+            }
+
+            skipBtn.style.display = 'none'; // Hidden in this prototype
+        }
+
+        function nextStep() {
+            if (currentStep === 5) {
+                // Perform setup (in real implementation, this would call the API)
+                updateReviewSummary();
+            }
+
+            if (currentStep === 6) {
+                // Go to login page
+                alert('Redirecting to login page...');
+                return;
+            }
+
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateProgress();
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 1 && currentStep < 6) {
+                currentStep--;
+                updateProgress();
+            }
+        }
+
+        function skipStep() {
+            // Skip functionality (if needed)
+            nextStep();
+        }
+
+        function updateReviewSummary() {
+            // Update email
+            const email = document.getElementById('adminEmail').value || 'Not set';
+            document.getElementById('reviewEmail').textContent = email;
+            document.getElementById('successEmail').textContent = email;
+
+            // Update roles
+            const roles = [];
+            if (document.getElementById('roleAdmin').checked) roles.push('Administrator');
+            if (document.getElementById('roleModerator').checked) roles.push('Moderator');
+            if (document.getElementById('roleEditor').checked) roles.push('Editor');
+            if (document.getElementById('roleUser').checked) roles.push('User');
+            document.getElementById('reviewRoles').textContent = roles.join(', ');
+
+            // Update invite settings
+            const requireInvite = document.getElementById('requireInvite').checked;
+            const generateInvite = document.getElementById('generateInvite').checked;
+
+            document.getElementById('reviewRequireInvite').textContent = requireInvite ? 'Yes' : 'No';
+            document.getElementById('reviewGenerateInvite').textContent = generateInvite ? 'Yes' : 'No';
+
+            // Show invite code if generating
+            if (generateInvite) {
+                document.getElementById('inviteCodeDisplay').style.display = 'block';
+            }
+        }
+
+        // Password strength indicator
+        document.getElementById('adminPassword')?.addEventListener('input', function(e) {
+            const password = e.target.value;
+            const strengthFill = document.getElementById('strengthFill');
+            const strengthLevel = document.getElementById('strengthLevel');
+
+            if (!password) {
+                strengthFill.className = 'strength-fill';
+                strengthLevel.textContent = 'Not set';
+                return;
+            }
+
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+            strengthFill.className = 'strength-fill';
+
+            if (strength <= 1) {
+                strengthFill.classList.add('weak');
+                strengthLevel.textContent = 'Weak';
+            } else if (strength <= 3) {
+                strengthFill.classList.add('medium');
+                strengthLevel.textContent = 'Medium';
+            } else {
+                strengthFill.classList.add('strong');
+                strengthLevel.textContent = 'Strong';
+            }
+        });
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard: ' + text);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+
+        // Initialize
+        updateProgress();
+    </script>
+</body>
+</html>

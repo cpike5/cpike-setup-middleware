@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Wizard - cpike.Setup.Middleware</title>
+    <style>
+        /* ============================================
+           CSS CUSTOM PROPERTIES (Design System)
+           ============================================ */
+        :root {
+            /* Primary Colors */
+            --setup-primary-gradient-start: #2c3e50;
+            --setup-primary-gradient-end: #3498db;
+            --setup-primary-blue: #3498db;
+            --setup-primary-hover: #2980b9;
+
+            /* Backgrounds */
+            --setup-background: #fafafa;
+            --setup-surface: #ffffff;
+            --setup-surface-alt: #f8f9fa;
+
+            /* Borders */
+            --setup-border: #eee;
+            --setup-border-light: #e0e0e0;
+            --setup-border-subtle: #e8f4f8;
+
+            /* Text */
+            --setup-text-primary: #2c3e50;
+            --setup-text-secondary: #555;
+            --setup-text-muted: #666;
+            --setup-text-disabled: #999;
+
+            /* Semantic Colors */
+            --setup-success: #28a745;
+            --setup-success-bg: #d4edda;
+            --setup-success-text: #155724;
+
+            --setup-warning: #ffc107;
+            --setup-warning-bg: #fff3cd;
+            --setup-warning-text: #856404;
+
+            --setup-error: #dc3545;
+            --setup-error-bg: #f8d7da;
+            --setup-error-text: #721c24;
+
+            --setup-info: #17a2b8;
+            --setup-info-bg: #d1ecf1;
+            --setup-info-text: #0c5460;
+
+            /* Typography */
+            --setup-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --setup-font-size-base: 1rem;
+            --setup-line-height-base: 1.6;
+
+            /* Spacing */
+            --setup-space-xs: 0.25rem;
+            --setup-space-sm: 0.5rem;
+            --setup-space-md: 1rem;
+            --setup-space-lg: 1.5rem;
+            --setup-space-xl: 2rem;
+
+            /* Borders & Shadows */
+            --setup-border-radius: 4px;
+            --setup-border-radius-lg: 8px;
+            --setup-shadow-md: 0 2px 20px rgba(0, 0, 0, 0.05);
+            --setup-shadow-button-hover: 0 4px 15px rgba(52, 152, 219, 0.3);
+
+            /* Transitions */
+            --setup-transition-base: 0.3s ease;
+        }
+
+        /* ============================================
+           GLOBAL STYLES
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--setup-background);
+            font-family: var(--setup-font-family);
+            line-height: var(--setup-line-height-base);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--setup-space-xl);
+        }
+
+        /* ============================================
+           WIZARD CONTAINER
+           ============================================ */
+        .setup-wizard {
+            background: var(--setup-surface);
+            border-radius: var(--setup-border-radius-lg);
+            box-shadow: var(--setup-shadow-md);
+            max-width: 700px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* ============================================
+           WIZARD HEADER
+           ============================================ */
+        .setup-wizard__header {
+            padding: var(--setup-space-xl) var(--setup-space-xl) var(--setup-space-md);
+            text-align: center;
+            border-bottom: 1px solid var(--setup-border);
+        }
+
+        .setup-wizard__logo {
+            font-variant: small-caps;
+            background: linear-gradient(135deg, var(--setup-primary-gradient-start), var(--setup-primary-gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 0.1em;
+            font-size: 2rem;
+            margin-bottom: var(--setup-space-sm);
+        }
+
+        .setup-wizard__title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--setup-text-primary);
+            margin-bottom: var(--setup-space-sm);
+        }
+
+        .setup-wizard__subtitle {
+            color: var(--setup-text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* ============================================
+           PROGRESS INDICATOR
+           ============================================ */
+        .progress-container {
+            padding: var(--setup-space-lg) var(--setup-space-xl);
+            background: var(--setup-surface-alt);
+        }
+
+        .progress-indicator {
+            position: relative;
+        }
+
+        .progress-indicator__steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            margin-bottom: var(--setup-space-sm);
+        }
+
+        .progress-indicator__line {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--setup-border-light);
+            z-index: 0;
+        }
+
+        .progress-indicator__fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(135deg, var(--setup-primary-gradient-start), var(--setup-primary-gradient-end));
+            transition: width var(--setup-transition-base);
+        }
+
+        .progress-indicator__step {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        .progress-indicator__circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--setup-surface);
+            border: 2px solid var(--setup-border-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--setup-text-disabled);
+            transition: all var(--setup-transition-base);
+        }
+
+        .progress-indicator__step.active .progress-indicator__circle {
+            border-color: var(--setup-primary-blue);
+            background: var(--setup-primary-blue);
+            color: var(--setup-surface);
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+        }
+
+        .progress-indicator__step.completed .progress-indicator__circle {
+            border-color: var(--setup-primary-blue);
+            background: var(--setup-primary-blue);
+            color: var(--setup-surface);
+        }
+
+        .progress-indicator__label {
+            margin-top: var(--setup-space-sm);
+            font-size: 0.75rem;
+            color: var(--setup-text-disabled);
+            text-align: center;
+            max-width: 80px;
+        }
+
+        .progress-indicator__step.active .progress-indicator__label {
+            color: var(--setup-primary-blue);
+            font-weight: 500;
+        }
+
+        .progress-indicator__step.completed .progress-indicator__label {
+            color: var(--setup-text-muted);
+        }
+
+        /* ============================================
+           WIZARD BODY
+           ============================================ */
+        .setup-wizard__body {
+            padding: var(--setup-space-xl);
+            min-height: 400px;
+        }
+
+        .wizard-step {
+            display: none;
+        }
+
+        .wizard-step.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ============================================
+           STEP CONTENT
+           ============================================ */
+        .step-header {
+            margin-bottom: var(--setup-space-lg);
+        }
+
+        .step-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--setup-text-primary);
+            margin-bottom: var(--setup-space-sm);
+        }
+
+        .step-description {
+            color: var(--setup-text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* ============================================
+           FORM COMPONENTS
+           ============================================ */
+        .form-group {
+            margin-bottom: var(--setup-space-lg);
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: var(--setup-space-sm);
+            color: var(--setup-text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--setup-border-light);
+            border-radius: var(--setup-border-radius);
+            font-size: var(--setup-font-size-base);
+            font-family: inherit;
+            transition: border-color var(--setup-transition-base);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--setup-primary-blue);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+        }
+
+        .form-hint {
+            font-size: 0.875rem;
+            color: var(--setup-text-disabled);
+            margin-top: var(--setup-space-xs);
+        }
+
+        /* ============================================
+           PASSWORD STRENGTH INDICATOR
+           ============================================ */
+        .password-strength {
+            margin-top: var(--setup-space-sm);
+        }
+
+        .password-strength__bar {
+            height: 4px;
+            background: var(--setup-border-light);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: var(--setup-space-xs);
+        }
+
+        .password-strength__fill {
+            height: 100%;
+            width: 0%;
+            transition: width var(--setup-transition-base), background var(--setup-transition-base);
+        }
+
+        .password-strength__fill.weak {
+            width: 33%;
+            background: var(--setup-error);
+        }
+
+        .password-strength__fill.medium {
+            width: 66%;
+            background: var(--setup-warning);
+        }
+
+        .password-strength__fill.strong {
+            width: 100%;
+            background: var(--setup-success);
+        }
+
+        .password-strength__text {
+            font-size: 0.75rem;
+            color: var(--setup-text-muted);
+        }
+
+        /* ============================================
+           CHECKBOX COMPONENT
+           ============================================ */
+        .setup-checkbox {
+            display: flex;
+            align-items: flex-start;
+            padding: 0.75rem;
+            border: 1px solid var(--setup-border-subtle);
+            border-radius: var(--setup-border-radius);
+            margin-bottom: var(--setup-space-sm);
+            transition: all var(--setup-transition-base);
+        }
+
+        .setup-checkbox:hover {
+            border-color: var(--setup-primary-blue);
+            background: rgba(52, 152, 219, 0.02);
+        }
+
+        .setup-checkbox__input {
+            width: 18px;
+            height: 18px;
+            margin-right: 0.75rem;
+            cursor: pointer;
+        }
+
+        .setup-checkbox__content {
+            flex: 1;
+        }
+
+        .setup-checkbox__label {
+            font-weight: 500;
+            color: var(--setup-text-primary);
+            display: block;
+            margin-bottom: var(--setup-space-xs);
+        }
+
+        .setup-checkbox__description {
+            font-size: 0.875rem;
+            color: var(--setup-text-muted);
+        }
+
+        /* ============================================
+           TOGGLE COMPONENT
+           ============================================ */
+        .setup-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--setup-space-md);
+            border: 1px solid var(--setup-border-subtle);
+            border-radius: var(--setup-border-radius);
+            margin-bottom: var(--setup-space-sm);
+        }
+
+        .setup-toggle__content {
+            flex: 1;
+            margin-right: var(--setup-space-md);
+        }
+
+        .setup-toggle__label {
+            font-weight: 500;
+            color: var(--setup-text-primary);
+            display: block;
+            margin-bottom: var(--setup-space-xs);
+        }
+
+        .setup-toggle__description {
+            font-size: 0.875rem;
+            color: var(--setup-text-muted);
+        }
+
+        .setup-toggle__switch {
+            position: relative;
+            width: 48px;
+            height: 24px;
+        }
+
+        .setup-toggle__switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .setup-toggle__slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: var(--setup-transition-base);
+            border-radius: 24px;
+        }
+
+        .setup-toggle__slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--setup-surface);
+            transition: var(--setup-transition-base);
+            border-radius: 50%;
+        }
+
+        .setup-toggle__switch input:checked + .setup-toggle__slider {
+            background-color: var(--setup-primary-blue);
+        }
+
+        .setup-toggle__switch input:checked + .setup-toggle__slider:before {
+            transform: translateX(24px);
+        }
+
+        /* ============================================
+           ALERT COMPONENT
+           ============================================ */
+        .setup-alert {
+            padding: var(--setup-space-md);
+            border-radius: var(--setup-border-radius);
+            margin-bottom: var(--setup-space-md);
+            border-left: 4px solid;
+        }
+
+        .setup-alert--info {
+            background: var(--setup-info-bg);
+            color: var(--setup-info-text);
+            border-left-color: var(--setup-info);
+        }
+
+        .setup-alert--warning {
+            background: var(--setup-warning-bg);
+            color: var(--setup-warning-text);
+            border-left-color: var(--setup-warning);
+        }
+
+        .setup-alert--success {
+            background: var(--setup-success-bg);
+            color: var(--setup-success-text);
+            border-left-color: var(--setup-success);
+        }
+
+        .setup-alert--error {
+            background: var(--setup-error-bg);
+            color: var(--setup-error-text);
+            border-left-color: var(--setup-error);
+        }
+
+        /* ============================================
+           BUTTON COMPONENTS
+           ============================================ */
+        .setup-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--setup-space-sm);
+            border: none;
+            border-radius: var(--setup-border-radius);
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all var(--setup-transition-base);
+            font-family: inherit;
+            padding: 0.6rem 1.5rem;
+            font-size: var(--setup-font-size-base);
+        }
+
+        .setup-button--primary {
+            background: var(--setup-primary-blue);
+            color: var(--setup-surface);
+        }
+
+        .setup-button--primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--setup-shadow-button-hover);
+        }
+
+        .setup-button--secondary {
+            background: var(--setup-surface-alt);
+            color: var(--setup-text-secondary);
+            border: 1px solid var(--setup-border-light);
+        }
+
+        .setup-button--secondary:hover {
+            background: #e9ecef;
+            border-color: #ccc;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .setup-button--large {
+            padding: 0.8rem 2rem;
+            font-size: 1.125rem;
+        }
+
+        .setup-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* ============================================
+           WIZARD FOOTER
+           ============================================ */
+        .setup-wizard__footer {
+            padding: var(--setup-space-lg) var(--setup-space-xl);
+            border-top: 1px solid var(--setup-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .wizard-actions {
+            display: flex;
+            gap: var(--setup-space-md);
+        }
+
+        /* ============================================
+           PASSWORD ACCESS SCREEN
+           ============================================ */
+        .password-access {
+            text-align: center;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .password-access__icon {
+            font-size: 4rem;
+            margin-bottom: var(--setup-space-lg);
+        }
+
+        .password-access__title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--setup-text-primary);
+            margin-bottom: var(--setup-space-md);
+        }
+
+        .password-access__description {
+            color: var(--setup-text-muted);
+            margin-bottom: var(--setup-space-xl);
+            line-height: 1.6;
+        }
+
+        .password-access__input-group {
+            margin-bottom: var(--setup-space-lg);
+        }
+
+        .password-access__hint {
+            font-size: 0.875rem;
+            color: var(--setup-text-disabled);
+            margin-top: var(--setup-space-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--setup-space-sm);
+        }
+
+        /* ============================================
+           SUCCESS SCREEN
+           ============================================ */
+        .success-display {
+            text-align: center;
+        }
+
+        .success-display__icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--setup-primary-gradient-start), var(--setup-primary-gradient-end));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto var(--setup-space-lg);
+            color: var(--setup-surface);
+            font-size: 3rem;
+        }
+
+        .code-display {
+            background: var(--setup-surface-alt);
+            border: 1px solid var(--setup-border-light);
+            border-radius: var(--setup-border-radius);
+            padding: var(--setup-space-md);
+            margin: var(--setup-space-md) 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            position: relative;
+            text-align: left;
+        }
+
+        .code-display__label {
+            font-weight: 600;
+            color: var(--setup-text-primary);
+            margin-bottom: var(--setup-space-sm);
+            font-family: var(--setup-font-family);
+        }
+
+        .code-display__value {
+            color: var(--setup-primary-blue);
+            user-select: all;
+            word-break: break-all;
+        }
+
+        /* ============================================
+           RESPONSIVE DESIGN
+           ============================================ */
+        @media (max-width: 768px) {
+            body {
+                padding: var(--setup-space-md);
+            }
+
+            .setup-wizard__header,
+            .setup-wizard__body {
+                padding: var(--setup-space-lg);
+            }
+
+            .progress-indicator__label {
+                display: none;
+            }
+
+            .setup-wizard__footer {
+                flex-direction: column;
+                gap: var(--setup-space-md);
+            }
+
+            .wizard-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .wizard-actions button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-wizard">
+        <!-- Header -->
+        <div class="setup-wizard__header">
+            <div class="setup-wizard__logo">cpike.ca</div>
+            <h1 class="setup-wizard__title">First-Time Setup</h1>
+            <p class="setup-wizard__subtitle">Configure your system in just a few steps</p>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div class="progress-container">
+            <div class="progress-indicator">
+                <div class="progress-indicator__steps">
+                    <div class="progress-indicator__line">
+                        <div class="progress-indicator__fill" id="progressFill" style="width: 0%;"></div>
+                    </div>
+                    <div class="progress-indicator__step" data-step="0">
+                        <div class="progress-indicator__circle">🔒</div>
+                        <div class="progress-indicator__label">Password</div>
+                    </div>
+                    <div class="progress-indicator__step" data-step="1">
+                        <div class="progress-indicator__circle">1</div>
+                        <div class="progress-indicator__label">Welcome</div>
+                    </div>
+                    <div class="progress-indicator__step" data-step="2">
+                        <div class="progress-indicator__circle">2</div>
+                        <div class="progress-indicator__label">Admin</div>
+                    </div>
+                    <div class="progress-indicator__step" data-step="3">
+                        <div class="progress-indicator__circle">3</div>
+                        <div class="progress-indicator__label">Roles</div>
+                    </div>
+                    <div class="progress-indicator__step" data-step="4">
+                        <div class="progress-indicator__circle">4</div>
+                        <div class="progress-indicator__label">Review</div>
+                    </div>
+                    <div class="progress-indicator__step" data-step="5">
+                        <div class="progress-indicator__circle">✓</div>
+                        <div class="progress-indicator__label">Complete</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wizard Body -->
+        <div class="setup-wizard__body">
+            <!-- Step 0: Password Access -->
+            <div class="wizard-step active" id="step0">
+                <div class="password-access">
+                    <div class="password-access__icon">🔒</div>
+                    <h2 class="password-access__title">Setup Wizard Protection</h2>
+                    <p class="password-access__description">
+                        This setup wizard is protected to prevent unauthorized access.
+                        Please enter the setup password that was displayed when the application started.
+                    </p>
+
+                    <div class="password-access__input-group">
+                        <label for="setupPassword">Setup Password</label>
+                        <input
+                            type="password"
+                            id="setupPassword"
+                            class="form-input"
+                            placeholder="Enter setup password"
+                            autocomplete="off">
+                    </div>
+
+                    <div class="password-access__hint">
+                        <span>ℹ️</span>
+                        <span>Check the console logs or <code>/app_data/setup-password.txt</code></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1: Welcome -->
+            <div class="wizard-step" id="step1">
+                <div class="step-header">
+                    <h2 class="step-title">Welcome to cpike.ca</h2>
+                    <p class="step-description">This wizard will help you set up your system for the first time.</p>
+                </div>
+
+                <div class="setup-alert setup-alert--info">
+                    <strong>Important:</strong> This setup wizard can only be run once. Make sure to save any generated credentials securely.
+                </div>
+
+                <div class="form-group">
+                    <p><strong>What we'll configure:</strong></p>
+                    <ul style="margin-left: 1.5rem; margin-top: 0.5rem; color: var(--setup-text-secondary);">
+                        <li>Administrator account with secure credentials</li>
+                        <li>System roles and permissions</li>
+                        <li>Application settings and preferences</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Step 2: Administrator Account -->
+            <div class="wizard-step" id="step2">
+                <div class="step-header">
+                    <h2 class="step-title">Create Administrator Account</h2>
+                    <p class="step-description">This account will have full access to all system features.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="adminEmail">Email Address</label>
+                    <input type="email" id="adminEmail" class="form-input" placeholder="admin@example.com">
+                    <div class="form-hint">You'll use this email to sign in to your account</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="adminPassword">Password</label>
+                    <input type="password" id="adminPassword" class="form-input" placeholder="Enter a strong password">
+                    <div class="password-strength">
+                        <div class="password-strength__bar">
+                            <div class="password-strength__fill" id="strengthFill"></div>
+                        </div>
+                        <div class="password-strength__text">
+                            Password strength: <span id="strengthLevel">Not set</span>
+                        </div>
+                    </div>
+                    <div class="form-hint">Minimum 8 characters with uppercase, lowercase, number, and symbol</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" class="form-input" placeholder="Re-enter your password">
+                </div>
+            </div>
+
+            <!-- Step 3: System Roles -->
+            <div class="wizard-step" id="step3">
+                <div class="step-header">
+                    <h2 class="step-title">Configure System Roles</h2>
+                    <p class="step-description">Select which roles to create in your system.</p>
+                </div>
+
+                <div class="setup-checkbox">
+                    <input type="checkbox" id="roleAdmin" class="setup-checkbox__input" checked disabled>
+                    <div class="setup-checkbox__content">
+                        <label for="roleAdmin" class="setup-checkbox__label">Administrator</label>
+                        <div class="setup-checkbox__description">Full system access including user management, content, and settings</div>
+                    </div>
+                </div>
+
+                <div class="setup-checkbox">
+                    <input type="checkbox" id="roleModerator" class="setup-checkbox__input" checked>
+                    <div class="setup-checkbox__content">
+                        <label for="roleModerator" class="setup-checkbox__label">Moderator</label>
+                        <div class="setup-checkbox__description">Can manage users and content, publish blog posts</div>
+                    </div>
+                </div>
+
+                <div class="setup-checkbox">
+                    <input type="checkbox" id="roleEditor" class="setup-checkbox__input" checked>
+                    <div class="setup-checkbox__content">
+                        <label for="roleEditor" class="setup-checkbox__label">Editor</label>
+                        <div class="setup-checkbox__description">Can create and edit blog posts and manage categories</div>
+                    </div>
+                </div>
+
+                <div class="setup-alert setup-alert--info">
+                    <strong>Note:</strong> The Administrator role is required and cannot be disabled.
+                </div>
+            </div>
+
+            <!-- Step 4: Review -->
+            <div class="wizard-step" id="step4">
+                <div class="step-header">
+                    <h2 class="step-title">Review Your Settings</h2>
+                    <p class="step-description">Please review your configuration before completing setup.</p>
+                </div>
+
+                <div style="background: var(--setup-surface-alt); padding: var(--setup-space-md); border-radius: var(--setup-border-radius); margin-bottom: var(--setup-space-md);">
+                    <div style="font-weight: 600; color: var(--setup-text-primary); margin-bottom: var(--setup-space-sm);">Administrator Account</div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--setup-border);">
+                        <span style="color: var(--setup-text-muted);">Email:</span>
+                        <span style="color: var(--setup-text-primary); font-weight: 500;" id="reviewEmail">-</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                        <span style="color: var(--setup-text-muted);">Password:</span>
+                        <span style="color: var(--setup-text-primary); font-weight: 500;">••••••••</span>
+                    </div>
+                </div>
+
+                <div style="background: var(--setup-surface-alt); padding: var(--setup-space-md); border-radius: var(--setup-border-radius); margin-bottom: var(--setup-space-md);">
+                    <div style="font-weight: 600; color: var(--setup-text-primary); margin-bottom: var(--setup-space-sm);">System Roles</div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                        <span style="color: var(--setup-text-muted);">Roles to create:</span>
+                        <span style="color: var(--setup-text-primary); font-weight: 500;" id="reviewRoles">-</span>
+                    </div>
+                </div>
+
+                <div class="setup-alert setup-alert--warning">
+                    <strong>⚠️ Important:</strong> This setup wizard can only be run once. After clicking "Complete Setup", these settings will be applied permanently.
+                </div>
+            </div>
+
+            <!-- Step 5: Success -->
+            <div class="wizard-step" id="step5">
+                <div class="success-display">
+                    <div class="success-display__icon">✓</div>
+                    <div class="step-header">
+                        <h2 class="step-title">Setup Complete!</h2>
+                        <p class="step-description">Your system has been configured successfully.</p>
+                    </div>
+
+                    <div class="setup-alert setup-alert--success">
+                        <strong>Success!</strong> Your administrator account has been created and all system roles have been configured.
+                    </div>
+
+                    <div class="code-display">
+                        <div class="code-display__label">Administrator Credentials</div>
+                        <div class="code-display__value" id="successEmail">admin@example.com</div>
+                    </div>
+
+                    <div class="setup-alert setup-alert--info">
+                        <strong>⚠️ Save These Credentials:</strong> Please save your credentials securely. You can now sign in to the application.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wizard Footer -->
+        <div class="setup-wizard__footer">
+            <div>
+                <button class="setup-button setup-button--secondary" id="prevBtn" onclick="previousStep()" style="display: none;">
+                    ← Previous
+                </button>
+            </div>
+            <div class="wizard-actions">
+                <button class="setup-button setup-button--primary" id="nextBtn" onclick="nextStep()">
+                    Continue to Setup →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 0;
+        const totalSteps = 6;
+        const correctPassword = "XpK7-mN94-Qr2L-vB8j"; // Demo password
+
+        function updateProgress() {
+            // Update progress bar
+            const progress = (currentStep / (totalSteps - 1)) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+
+            // Update step indicators
+            document.querySelectorAll('.progress-indicator__step').forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+
+                if (index < currentStep) {
+                    step.classList.add('completed');
+                } else if (index === currentStep) {
+                    step.classList.add('active');
+                }
+            });
+
+            // Update wizard steps
+            document.querySelectorAll('.wizard-step').forEach((step, index) => {
+                step.classList.remove('active');
+                if (index === currentStep) {
+                    step.classList.add('active');
+                }
+            });
+
+            // Update buttons
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            prevBtn.style.display = currentStep > 0 && currentStep < 5 ? 'inline-flex' : 'none';
+
+            if (currentStep === 0) {
+                nextBtn.textContent = 'Continue to Setup →';
+                nextBtn.className = 'setup-button setup-button--primary';
+            } else if (currentStep === 4) {
+                nextBtn.textContent = 'Complete Setup';
+                nextBtn.className = 'setup-button setup-button--primary setup-button--large';
+            } else if (currentStep === 5) {
+                nextBtn.textContent = 'Go to Application →';
+                nextBtn.className = 'setup-button setup-button--primary setup-button--large';
+            } else {
+                nextBtn.textContent = 'Next →';
+                nextBtn.className = 'setup-button setup-button--primary';
+            }
+        }
+
+        function nextStep() {
+            // Password validation
+            if (currentStep === 0) {
+                const password = document.getElementById('setupPassword').value;
+                if (password !== correctPassword) {
+                    alert('❌ Invalid password. Try: ' + correctPassword);
+                    return;
+                }
+            }
+
+            // Review step - populate data
+            if (currentStep === 3) {
+                updateReviewSummary();
+            }
+
+            // Final step - redirect
+            if (currentStep === 5) {
+                alert('Redirecting to application...');
+                return;
+            }
+
+            if (currentStep < totalSteps - 1) {
+                currentStep++;
+                updateProgress();
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 0 && currentStep < 5) {
+                currentStep--;
+                updateProgress();
+            }
+        }
+
+        function updateReviewSummary() {
+            const email = document.getElementById('adminEmail').value || 'Not set';
+            document.getElementById('reviewEmail').textContent = email;
+            document.getElementById('successEmail').textContent = email;
+
+            const roles = [];
+            if (document.getElementById('roleAdmin').checked) roles.push('Administrator');
+            if (document.getElementById('roleModerator').checked) roles.push('Moderator');
+            if (document.getElementById('roleEditor').checked) roles.push('Editor');
+            document.getElementById('reviewRoles').textContent = roles.join(', ');
+        }
+
+        // Password strength indicator
+        document.getElementById('adminPassword')?.addEventListener('input', function(e) {
+            const password = e.target.value;
+            const strengthFill = document.getElementById('strengthFill');
+            const strengthLevel = document.getElementById('strengthLevel');
+
+            if (!password) {
+                strengthFill.className = 'password-strength__fill';
+                strengthLevel.textContent = 'Not set';
+                return;
+            }
+
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+            strengthFill.className = 'password-strength__fill';
+
+            if (strength <= 1) {
+                strengthFill.classList.add('weak');
+                strengthLevel.textContent = 'Weak';
+            } else if (strength <= 3) {
+                strengthFill.classList.add('medium');
+                strengthLevel.textContent = 'Medium';
+            } else {
+                strengthFill.classList.add('strong');
+                strengthLevel.textContent = 'Strong';
+            }
+        });
+
+        // Initialize
+        updateProgress();
+    </script>
+</body>
+</html>
