@@ -1,0 +1,75 @@
+@using cpike.Setup.Middleware.Steps
+@using cpike.Setup.Middleware.Models
+@inherits SetupStepBase
+
+<div class="step-content">
+    <div class="form-group">
+        <label for="adminEmail">Administrator Email</label>
+        <input type="email" id="adminEmail" class="form-control" @bind="AdminEmail" placeholder="admin@example.com" />
+    </div>
+
+    <div class="form-group">
+        <label for="adminPassword">Administrator Password</label>
+        <input type="password" id="adminPassword" class="form-control" @bind="AdminPassword" placeholder="Enter a strong password" />
+    </div>
+
+    <div class="form-group">
+        <label for="adminPasswordConfirm">Confirm Password</label>
+        <input type="password" id="adminPasswordConfirm" class="form-control" @bind="AdminPasswordConfirm" placeholder="Re-enter password" />
+    </div>
+</div>
+
+@code {
+    public override string Title => "Create Administrator Account";
+    public override string Description => "Set up the initial administrator account for your application.";
+    public override int Order => 10;
+
+    private string AdminEmail { get; set; } = string.Empty;
+    private string AdminPassword { get; set; } = string.Empty;
+    private string AdminPasswordConfirm { get; set; } = string.Empty;
+
+    public override Task<ValidationResult> ValidateAsync()
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(AdminEmail))
+        {
+            errors.Add("Administrator email is required.");
+        }
+        else if (!AdminEmail.Contains("@"))
+        {
+            errors.Add("Please enter a valid email address.");
+        }
+
+        if (string.IsNullOrWhiteSpace(AdminPassword))
+        {
+            errors.Add("Administrator password is required.");
+        }
+        else if (AdminPassword.Length < 8)
+        {
+            errors.Add("Password must be at least 8 characters long.");
+        }
+
+        if (AdminPassword != AdminPasswordConfirm)
+        {
+            errors.Add("Passwords do not match.");
+        }
+
+        if (errors.Any())
+        {
+            return Task.FromResult(ValidationResult.Failure(errors));
+        }
+
+        return Task.FromResult(ValidationResult.Success);
+    }
+
+    public override Task ExecuteAsync()
+    {
+        // Store the admin credentials in the state manager
+        StateManager.Set("AdminEmail", AdminEmail);
+        StateManager.Set("AdminPassword", AdminPassword);
+
+        Logger.LogInformation("Admin account configured: {Email}", AdminEmail);
+        return Task.CompletedTask;
+    }
+}

@@ -1,0 +1,65 @@
+@using cpike.Setup.Middleware.Steps
+@using cpike.Setup.Middleware.Models
+@inherits SetupStepBase
+
+<div class="step-content">
+    <h3>Review Your Configuration</h3>
+    <p>Please review the configuration below before completing the setup.</p>
+
+    <div class="review-section">
+        <h4>Administrator Account</h4>
+        <dl>
+            <dt>Email:</dt>
+            <dd>@AdminEmail</dd>
+        </dl>
+    </div>
+
+    <div class="review-section">
+        <h4>Database Connection</h4>
+        <dl>
+            <dt>Connection String:</dt>
+            <dd><code>@MaskedConnectionString</code></dd>
+        </dl>
+    </div>
+
+    <div class="alert alert-info">
+        <strong>Note:</strong> Once you click "Complete Setup", the application will be initialized with these settings.
+    </div>
+</div>
+
+@code {
+    public override string Title => "Review & Complete";
+    public override string Description => "Review your configuration and complete the setup.";
+    public override int Order => 30;
+
+    private string AdminEmail => StateManager.Get<string>("AdminEmail") ?? "Not configured";
+    private string ConnectionString => StateManager.Get<string>("DatabaseConnectionString") ?? "Not configured";
+
+    private string MaskedConnectionString
+    {
+        get
+        {
+            if (ConnectionString.Contains("Password="))
+            {
+                // Mask the password in the connection string for display
+                return System.Text.RegularExpressions.Regex.Replace(
+                    ConnectionString,
+                    @"Password=[^;]+",
+                    "Password=***");
+            }
+            return ConnectionString;
+        }
+    }
+
+    public override Task<ValidationResult> ValidateAsync()
+    {
+        // No validation needed for review step
+        return Task.FromResult(ValidationResult.Success);
+    }
+
+    public override Task ExecuteAsync()
+    {
+        Logger.LogInformation("Setup review completed. Ready to finalize setup.");
+        return Task.CompletedTask;
+    }
+}

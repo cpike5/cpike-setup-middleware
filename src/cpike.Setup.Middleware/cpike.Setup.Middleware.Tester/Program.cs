@@ -2,6 +2,7 @@ using cpike.Setup.Middleware.Extensions;
 using cpike.Setup.Middleware.Tester.Components;
 using cpike.Setup.Middleware.Tester.Components.Account;
 using cpike.Setup.Middleware.Tester.Data;
+using cpike.Setup.Middleware.Tester.Steps;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -45,8 +46,10 @@ namespace cpike.Setup.Middleware.Tester
             // Register setup wizard services
             builder.Services.AddSetupWizard(setup =>
             {
-                // Configure setup steps here
-                // Example: setup.AddStep<YourSetupStep>();
+                // Register setup steps in order
+                setup.AddStep<AdminAccountStep>();
+                setup.AddStep<DatabaseConfigStep>();
+                setup.AddStep<ReviewStep>();
             });
 
             var app = builder.Build();

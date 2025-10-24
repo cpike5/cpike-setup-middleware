@@ -1,0 +1,102 @@
+@using cpike.Setup.Middleware.Steps
+@using cpike.Setup.Middleware.Models
+@inherits SetupStepBase
+
+<div class="step-content">
+    <div class="form-group">
+        <label for="dbServer">Database Server</label>
+        <input type="text" id="dbServer" class="form-control" @bind="DatabaseServer" placeholder="localhost" />
+    </div>
+
+    <div class="form-group">
+        <label for="dbName">Database Name</label>
+        <input type="text" id="dbName" class="form-control" @bind="DatabaseName" placeholder="MyApplicationDb" />
+    </div>
+
+    <div class="form-group">
+        <label>
+            <input type="checkbox" @bind="UseWindowsAuth" />
+            Use Windows Authentication
+        </label>
+    </div>
+
+    @if (!UseWindowsAuth)
+    {
+        <div class="form-group">
+            <label for="dbUser">Database Username</label>
+            <input type="text" id="dbUser" class="form-control" @bind="DatabaseUser" placeholder="sa" />
+        </div>
+
+        <div class="form-group">
+            <label for="dbPassword">Database Password</label>
+            <input type="password" id="dbPassword" class="form-control" @bind="DatabasePassword" placeholder="Enter password" />
+        </div>
+    }
+</div>
+
+@code {
+    public override string Title => "Configure Database Connection";
+    public override string Description => "Set up the database connection for your application.";
+    public override int Order => 20;
+
+    private string DatabaseServer { get; set; } = "localhost";
+    private string DatabaseName { get; set; } = string.Empty;
+    private bool UseWindowsAuth { get; set; } = false;
+    private string DatabaseUser { get; set; } = string.Empty;
+    private string DatabasePassword { get; set; } = string.Empty;
+
+    public override Task<ValidationResult> ValidateAsync()
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(DatabaseServer))
+        {
+            errors.Add("Database server is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(DatabaseName))
+        {
+            errors.Add("Database name is required.");
+        }
+
+        if (!UseWindowsAuth)
+        {
+            if (string.IsNullOrWhiteSpace(DatabaseUser))
+            {
+                errors.Add("Database username is required when not using Windows Authentication.");
+            }
+
+            if (string.IsNullOrWhiteSpace(DatabasePassword))
+            {
+                errors.Add("Database password is required when not using Windows Authentication.");
+            }
+        }
+
+        if (errors.Any())
+        {
+            return Task.FromResult(ValidationResult.Failure(errors));
+        }
+
+        return Task.FromResult(ValidationResult.Success);
+    }
+
+    public override Task ExecuteAsync()
+    {
+        // Build connection string
+        string connectionString;
+        if (UseWindowsAuth)
+        {
+            connectionString = $"Server={DatabaseServer};Database={DatabaseName};Trusted_Connection=True;TrustServerCertificate=True;";
+        }
+        else
+        {
+            connectionString = $"Server={DatabaseServer};Database={DatabaseName};User Id={DatabaseUser};Password={DatabasePassword};TrustServerCertificate=True;";
+        }
+
+        // Store in state manager
+        StateManager.Set("DatabaseConnectionString", connectionString);
+
+        Logger.LogInformation("Database connection configured: Server={Server}, Database={Database}", DatabaseServer, DatabaseName);
+        return Task.CompletedTask;
+    }
+}
