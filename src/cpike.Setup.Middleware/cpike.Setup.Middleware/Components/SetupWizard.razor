@@ -1,0 +1,305 @@
+@using cpike.Setup.Middleware.Services
+@using cpike.Setup.Middleware.Steps
+@using cpike.Setup.Middleware.Models
+@inject ISetupWizardService WizardService
+@inject Microsoft.Extensions.Logging.ILogger<SetupWizard> Logger
+
+<div class="setup-wizard-container">
+    <div class="setup-wizard">
+        @if (_isLoading)
+        {
+            <div class="setup-loading">
+                <div class="spinner"></div>
+                <p>Loading...</p>
+            </div>
+        }
+        else if (_errorMessage != null)
+        {
+            <div class="setup-error">
+                <h2>Error</h2>
+                <p>@_errorMessage</p>
+                <button @onclick="RetryAsync" class="btn btn-primary">Retry</button>
+            </div>
+        }
+        else
+        {
+            <!-- Wizard Header -->
+            <header class="wizard-header">
+                <div class="wizard-logo">
+                    <h1>Setup Wizard</h1>
+                </div>
+            </header>
+
+            <!-- Progress Indicator -->
+            <div class="wizard-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: @(WizardService.ProgressPercentage)%"></div>
+                </div>
+                <div class="progress-text">
+                    Step @(WizardService.CurrentStepIndex + 1) of @WizardService.TotalSteps
+                    (@WizardService.ProgressPercentage%)
+                </div>
+            </div>
+
+            <!-- Current Step Content -->
+            <div class="wizard-content">
+                @if (_currentStep != null)
+                {
+                    <div class="step-header">
+                        <h2>@_currentStep.Title</h2>
+                        @if (!string.IsNullOrWhiteSpace(_currentStep.Description))
+                        {
+                            <p class="step-description">@_currentStep.Description</p>
+                        }
+                    </div>
+
+                    <div class="step-body">
+                        <DynamicComponent Type="@_currentStepType" />
+                    </div>
+
+                    @if (_validationErrors.Any())
+                    {
+                        <div class="validation-errors">
+                            <h4>Please correct the following errors:</h4>
+                            <ul>
+                                @foreach (var error in _validationErrors)
+                                {
+                                    <li>@error</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                }
+            </div>
+
+            <!-- Wizard Footer with Navigation -->
+            <footer class="wizard-footer">
+                <div class="wizard-navigation">
+                    <button
+                        class="btn btn-secondary"
+                        @onclick="PreviousAsync"
+                        disabled="@(!WizardService.CanNavigatePrevious || _isNavigating)">
+                        Previous
+                    </button>
+
+                    <div class="nav-spacer"></div>
+
+                    @if (WizardService.IsLastStep)
+                    {
+                        <button
+                            class="btn btn-success"
+                            @onclick="CompleteAsync"
+                            disabled="@_isNavigating">
+                            @if (_isNavigating)
+                            {
+                                <span>Completing...</span>
+                            }
+                            else
+                            {
+                                <span>Complete Setup</span>
+                            }
+                        </button>
+                    }
+                    else
+                    {
+                        <button
+                            class="btn btn-primary"
+                            @onclick="NextAsync"
+                            disabled="@(!WizardService.CanNavigateNext || _isNavigating)">
+                            @if (_isNavigating)
+                            {
+                                <span>Loading...</span>
+                            }
+                            else
+                            {
+                                <span>Next</span>
+                            }
+                        </button>
+                    }
+                </div>
+            </footer>
+        }
+    </div>
+</div>
+
+@code {
+    private ISetupStep? _currentStep;
+    private Type? _currentStepType;
+    private bool _isLoading = true;
+    private bool _isNavigating = false;
+    private string? _errorMessage;
+    private List<string> _validationErrors = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadCurrentStepAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing setup wizard");
+            _errorMessage = "Failed to initialize the setup wizard. Please try again.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadCurrentStepAsync()
+    {
+        _currentStep = await WizardService.GetCurrentStepAsync();
+
+        if (_currentStep == null)
+        {
+            _errorMessage = "No setup steps have been configured.";
+            return;
+        }
+
+        _currentStepType = _currentStep.GetType();
+        _validationErrors.Clear();
+
+        Logger.LogDebug("Loaded step: {StepTitle}", _currentStep.Title);
+    }
+
+    private async Task NextAsync()
+    {
+        if (_isNavigating) return;
+
+        _isNavigating = true;
+        _validationErrors.Clear();
+
+        try
+        {
+            // Validate current step
+            var validationResult = await WizardService.ValidateCurrentStepAsync();
+
+            if (!validationResult.IsValid)
+            {
+                _validationErrors = validationResult.Errors.ToList();
+                Logger.LogWarning("Step validation failed with {ErrorCount} errors", _validationErrors.Count);
+                return;
+            }
+
+            // Navigate to next step
+            var success = await WizardService.NextStepAsync();
+
+            if (success)
+            {
+                await LoadCurrentStepAsync();
+                Logger.LogInformation("Navigated to next step");
+            }
+            else
+            {
+                _errorMessage = "Failed to navigate to the next step.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error navigating to next step");
+            _errorMessage = "An error occurred while navigating to the next step.";
+        }
+        finally
+        {
+            _isNavigating = false;
+        }
+    }
+
+    private async Task PreviousAsync()
+    {
+        if (_isNavigating) return;
+
+        _isNavigating = true;
+        _validationErrors.Clear();
+
+        try
+        {
+            var success = await WizardService.PreviousStepAsync();
+
+            if (success)
+            {
+                await LoadCurrentStepAsync();
+                Logger.LogInformation("Navigated to previous step");
+            }
+            else
+            {
+                _errorMessage = "Failed to navigate to the previous step.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error navigating to previous step");
+            _errorMessage = "An error occurred while navigating to the previous step.";
+        }
+        finally
+        {
+            _isNavigating = false;
+        }
+    }
+
+    private async Task CompleteAsync()
+    {
+        if (_isNavigating) return;
+
+        _isNavigating = true;
+        _validationErrors.Clear();
+
+        try
+        {
+            // Validate current (last) step
+            var validationResult = await WizardService.ValidateCurrentStepAsync();
+
+            if (!validationResult.IsValid)
+            {
+                _validationErrors = validationResult.Errors.ToList();
+                Logger.LogWarning("Final step validation failed with {ErrorCount} errors", _validationErrors.Count);
+                return;
+            }
+
+            // Complete the setup
+            Logger.LogInformation("Completing setup wizard");
+            var success = await WizardService.CompleteSetupAsync();
+
+            if (success)
+            {
+                Logger.LogInformation("Setup completed successfully");
+                // Navigation will be handled by middleware - user will be redirected
+                // to the application home page
+            }
+            else
+            {
+                _errorMessage = "Failed to complete the setup. Please check the logs for more details.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error completing setup");
+            _errorMessage = "An error occurred while completing the setup.";
+        }
+        finally
+        {
+            _isNavigating = false;
+        }
+    }
+
+    private async Task RetryAsync()
+    {
+        _errorMessage = null;
+        _isLoading = true;
+
+        try
+        {
+            await LoadCurrentStepAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error retrying wizard initialization");
+            _errorMessage = "Failed to initialize the setup wizard. Please try again.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

@@ -38,6 +38,7 @@ public static class ServiceCollectionExtensions
         // Register core services
         services.TryAddSingleton<ISetupCompletionService, FileBasedSetupCompletionService>();
         services.TryAddScoped<ISetupStateManager, SetupStateManager>();
+        services.TryAddScoped<ISetupWizardService, SetupWizardService>();
 
         // Configure setup options with default values
         services.AddOptions<SetupOptions>()

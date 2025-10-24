@@ -1,0 +1,21 @@
+@page "/setup"
+@using cpike.Setup.Middleware.Components
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Setup Wizard</title>
+    <base href="/" />
+    <link rel="stylesheet" href="_content/cpike.Setup.Middleware/css/setup-wizard.css" />
+</head>
+<body>
+    <SetupWizard />
+</body>
+</html>
+
+@code {
+    // This page serves as the entry point for the setup wizard
+    // It will be rendered when users are redirected to /setup by the middleware
+}
