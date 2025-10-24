@@ -39,6 +39,10 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<ISetupCompletionService, FileBasedSetupCompletionService>();
         services.TryAddScoped<ISetupStateManager, SetupStateManager>();
         services.TryAddScoped<ISetupWizardService, SetupWizardService>();
+        services.TryAddSingleton<ISetupPasswordService, SetupPasswordService>();
+
+        // Register HttpContextAccessor (required for password service session management)
+        services.AddHttpContextAccessor();
 
         // Configure setup options with default values
         services.AddOptions<SetupOptions>()

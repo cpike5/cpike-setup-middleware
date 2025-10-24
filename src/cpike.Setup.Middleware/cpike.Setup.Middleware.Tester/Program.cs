@@ -19,6 +19,15 @@ namespace cpike.Setup.Middleware.Tester
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
 
+            // Add session support (required for password verification)
+            builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromMinutes(30);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
+
             builder.Services.AddCascadingAuthenticationState();
             builder.Services.AddScoped<IdentityUserAccessor>();
             builder.Services.AddScoped<IdentityRedirectManager>();
@@ -67,6 +76,9 @@ namespace cpike.Setup.Middleware.Tester
             }
 
             app.UseHttpsRedirection();
+
+            // Use session (must be before setup middleware)
+            app.UseSession();
 
             // Use the custom setup middleware
             app.UseSetupMiddleware();

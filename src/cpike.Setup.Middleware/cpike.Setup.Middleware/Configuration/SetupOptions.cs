@@ -56,30 +56,7 @@ public class SetupOptions
     /// <summary>
     /// Gets or sets a value indicating whether password protection is required
     /// to access the setup wizard. Default is true.
+    /// When enabled, a secure password will be generated and logged to the console.
     /// </summary>
     public bool RequirePassword { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets the directory where the setup password file is stored.
-    /// Default is "./App_Data".
-    /// </summary>
-    public string PasswordDirectory { get; set; } = "./App_Data";
-
-    /// <summary>
-    /// Gets or sets the name of the setup password file.
-    /// Default is "setup-password.txt".
-    /// </summary>
-    public string PasswordFileName { get; set; } = "setup-password.txt";
-
-    /// <summary>
-    /// Gets or sets the maximum number of password attempts before rate limiting kicks in.
-    /// Default is 5 attempts.
-    /// </summary>
-    public int MaxPasswordAttempts { get; set; } = 5;
-
-    /// <summary>
-    /// Gets or sets the rate limit lockout duration in minutes after max attempts is reached.
-    /// Default is 15 minutes.
-    /// </summary>
-    public int PasswordLockoutMinutes { get; set; } = 15;
 }

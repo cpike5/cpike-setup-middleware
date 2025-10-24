@@ -1,5 +1,7 @@
 @page "/setup"
 @using cpike.Setup.Middleware.Components
+@using cpike.Setup.Middleware.Services
+@inject ISetupPasswordService PasswordService
 
 <!DOCTYPE html>
 <html lang="en">
@@ -11,11 +13,33 @@
     <link rel="stylesheet" href="_content/cpike.Setup.Middleware/css/setup-wizard.css" />
 </head>
 <body>
-    <SetupWizard />
+    @if (_showPasswordPrompt)
+    {
+        <PasswordPrompt OnPasswordVerified="OnPasswordVerifiedAsync" />
+    }
+    else
+    {
+        <SetupWizard />
+    }
 </body>
 </html>
 
 @code {
-    // This page serves as the entry point for the setup wizard
-    // It will be rendered when users are redirected to /setup by the middleware
+    private bool _showPasswordPrompt = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Check if password is required and verified
+        var passwordRequired = await PasswordService.IsPasswordRequiredAsync();
+        var passwordVerified = await PasswordService.IsPasswordVerifiedAsync();
+
+        _showPasswordPrompt = passwordRequired && !passwordVerified;
+    }
+
+    private Task OnPasswordVerifiedAsync()
+    {
+        _showPasswordPrompt = false;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
 }
