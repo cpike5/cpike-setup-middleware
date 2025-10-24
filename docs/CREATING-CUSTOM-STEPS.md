@@ -4,6 +4,8 @@
 
 This guide explains how to create custom setup steps for the cpike.Setup.Middleware library. Setup steps are the individual screens in your wizard that collect configuration data from the administrator.
 
+> 💡 **Looking for design and styling guidance?** Check out the **[Step Design & Styling Guide](STEP-DESIGN-GUIDE.md)** for best practices on creating beautiful, modern setup steps using the built-in component library.
+
 ## Quick Start
 
 ### Minimal Step Implementation
@@ -102,16 +104,63 @@ Most steps should inherit from `SetupStepBase`, which provides:
 
 ```csharp
 [Inject] protected ISetupStateManager StateManager { get; set; }
-[Inject] protected NavigationManager Navigation { get; set; }
+[Inject] protected ILogger Logger { get; set; }
 ```
 
 You can inject additional services:
 
 ```csharp
 @inject IConfiguration Configuration
-@inject ILogger<MyCustomStep> Logger
 @inject UserManager<ApplicationUser> UserManager
 ```
+
+### Dual Constructor Pattern (IMPORTANT)
+
+Steps need to support two different instantiation scenarios:
+
+1. **Blazor rendering**: Requires a parameterless constructor and uses `[Inject]` attributes
+2. **DI container instantiation**: Used by the wizard service for validation on non-rendered instances
+
+**Use this pattern:**
+
+```csharp
+@code {
+    // Parameterless constructor for Blazor rendering
+    public MyCustomStep()
+    {
+    }
+
+    // Constructor injection for when instance is created via DI (not rendered)
+    public MyCustomStep(ISetupStateManager stateManager, ILogger<MyCustomStep> logger)
+    {
+        StateManager = stateManager;
+        Logger = logger;
+    }
+
+    protected override void OnInitialized()
+    {
+        // Load state from StateManager when rendered
+        MyValue = StateManager?.Get<string>("MyValue") ?? string.Empty;
+    }
+
+    public override Task<ValidationResult> ValidateAsync()
+    {
+        // IMPORTANT: Always load from StateManager, not local fields
+        // This method may be called on a fresh instance created via DI
+        var myValue = StateManager.Get<string>("MyValue") ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(myValue))
+            return Task.FromResult(ValidationResult.Failure("Value is required"));
+
+        return Task.FromResult(ValidationResult.Success);
+    }
+}
+```
+
+**Why this matters:**
+- When navigating between steps, the wizard service creates a new instance via DI to call `ValidateAsync()`
+- This instance is NOT rendered, so Blazor lifecycle methods (`OnInitialized`, etc.) are NOT called
+- Therefore, `ValidateAsync()` must read directly from `StateManager` rather than relying on component fields
 
 ## Step Ordering
 
@@ -160,39 +209,45 @@ public class ReviewStep : SetupStepBase
 Implement `ValidateAsync()` to validate user input before proceeding to the next step:
 
 ```csharp
-public override async Task<ValidationResult> ValidateAsync()
+public override Task<ValidationResult> ValidateAsync()
 {
+    // IMPORTANT: Always load from StateManager, not component fields
+    // This method may be called on a fresh DI instance that wasn't rendered
+    var email = StateManager.Get<string>("AdminEmail") ?? string.Empty;
+    var password = StateManager.Get<string>("AdminPassword") ?? string.Empty;
+    var confirmPassword = StateManager.Get<string>("AdminPasswordConfirm") ?? string.Empty;
+
     var errors = new List<string>();
 
-    if (string.IsNullOrWhiteSpace(Email))
+    if (string.IsNullOrWhiteSpace(email))
     {
         errors.Add("Email is required");
     }
-    else if (!IsValidEmail(Email))
+    else if (!email.Contains("@"))
     {
         errors.Add("Email format is invalid");
     }
 
-    if (string.IsNullOrWhiteSpace(Password))
+    if (string.IsNullOrWhiteSpace(password))
     {
         errors.Add("Password is required");
     }
-    else if (Password.Length < 8)
+    else if (password.Length < 8)
     {
         errors.Add("Password must be at least 8 characters");
     }
 
-    if (Password != ConfirmPassword)
+    if (password != confirmPassword)
     {
         errors.Add("Passwords do not match");
     }
 
     if (errors.Any())
     {
-        return ValidationResult.Failure(errors);
+        return Task.FromResult(ValidationResult.Failure(errors));
     }
 
-    return ValidationResult.Success;
+    return Task.FromResult(ValidationResult.Success);
 }
 ```
 
@@ -491,150 +546,171 @@ The library provides pre-built components you can use in your steps:
 ## Complete Example: Admin Account Step
 
 ```razor
-@page "/setup/admin"
+@using cpike.Setup.Middleware.Steps
+@using cpike.Setup.Middleware.Models
+@using cpike.Setup.Middleware.Components
 @inherits SetupStepBase
-@inject UserManager<ApplicationUser> UserManager
-@inject ILogger<AdminAccountStep> Logger
 
-<div class="step-header">
-    <h2 class="step-title">@Title</h2>
-    <p class="step-description">@Description</p>
-</div>
-
-<EditForm Model="@Model" OnValidSubmit="OnFormSubmit">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <div class="form-group">
-        <label>Email Address</label>
-        <InputText @bind-Value="Model.Email"
-                   type="email"
-                   class="form-input"
-                   placeholder="admin@example.com" />
-        <ValidationMessage For="@(() => Model.Email)" />
-        <div class="form-hint">You'll use this email to sign in</div>
-    </div>
-
-    <div class="form-group">
-        <label>Password</label>
-        <InputText @bind-Value="Model.Password"
-                   type="password"
-                   class="form-input" />
-        <ValidationMessage For="@(() => Model.Password)" />
-
-        @if (!string.IsNullOrEmpty(Model.Password))
-        {
-            <PasswordStrength Password="@Model.Password" />
-        }
-
-        <div class="form-hint">
-            Minimum 8 characters with uppercase, lowercase, number, and symbol
-        </div>
-    </div>
-
-    <div class="form-group">
-        <label>Confirm Password</label>
-        <InputText @bind-Value="Model.ConfirmPassword"
-                   type="password"
-                   class="form-input" />
-        <ValidationMessage For="@(() => Model.ConfirmPassword)" />
-    </div>
-</EditForm>
-
-@if (!string.IsNullOrEmpty(ErrorMessage))
-{
-    <SetupAlert Type="AlertType.Error">
-        @ErrorMessage
+<div class="step-content">
+    <SetupAlert Severity="info" Title="Create Administrator Account">
+        This account will have full access to the application. Choose a strong password and keep it secure.
     </SetupAlert>
-}
+
+    <SetupInput
+        Id="admin-email"
+        Label="Administrator Email"
+        InputType="email"
+        Value="@AdminEmail"
+        ValueChanged="@OnEmailChanged"
+        Placeholder="admin@example.com"
+        Required="true"
+        ErrorMessage="@_emailError"
+        HelpText="Used for account recovery and notifications"
+        Autocomplete="email" />
+
+    <SetupInput
+        Id="admin-password"
+        Label="Administrator Password"
+        InputType="password"
+        Value="@AdminPassword"
+        ValueChanged="@OnPasswordChanged"
+        Placeholder="Enter a strong password"
+        Required="true"
+        ErrorMessage="@_passwordError"
+        HelpText="Must be at least 8 characters long"
+        Autocomplete="new-password" />
+
+    <SetupInput
+        Id="admin-password-confirm"
+        Label="Confirm Password"
+        InputType="password"
+        Value="@AdminPasswordConfirm"
+        ValueChanged="@OnConfirmPasswordChanged"
+        Placeholder="Re-enter password"
+        Required="true"
+        ErrorMessage="@_confirmPasswordError"
+        Autocomplete="new-password" />
+</div>
 
 @code {
     public override string Title => "Create Administrator Account";
-    public override string Description => "This account will have full access to all system features and settings.";
+    public override string Description => "Set up the initial administrator account for your application.";
     public override int Order => 10;
 
-    private AdminModel Model { get; set; } = new();
-    private string ErrorMessage { get; set; }
+    private string AdminEmail { get; set; } = string.Empty;
+    private string AdminPassword { get; set; } = string.Empty;
+    private string AdminPasswordConfirm { get; set; } = string.Empty;
 
-    public class AdminModel
+    private string? _emailError;
+    private string? _passwordError;
+    private string? _confirmPasswordError;
+
+    // Parameterless constructor for Blazor rendering
+    public AdminAccountStep()
     {
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid email format")]
-        public string Email { get; set; }
-
-        [Required(ErrorMessage = "Password is required")]
-        [MinLength(8, ErrorMessage = "Password must be at least 8 characters")]
-        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]",
-            ErrorMessage = "Password must contain uppercase, lowercase, number, and symbol")]
-        public string Password { get; set; }
-
-        [Required(ErrorMessage = "Password confirmation is required")]
-        [Compare(nameof(Password), ErrorMessage = "Passwords do not match")]
-        public string ConfirmPassword { get; set; }
     }
 
-    public override async Task<ValidationResult> ValidateAsync()
+    // Constructor injection for when instance is created via DI (not rendered)
+    public AdminAccountStep(ISetupStateManager stateManager, ILogger<AdminAccountStep> logger)
     {
-        // Check if email already exists
-        var existingUser = await UserManager.FindByEmailAsync(Model.Email);
-        if (existingUser != null)
-        {
-            return ValidationResult.Failure("An account with this email already exists");
-        }
-
-        return ValidationResult.Success;
+        StateManager = stateManager;
+        Logger = logger;
     }
 
-    public override async Task ExecuteAsync()
+    protected override void OnInitialized()
     {
-        try
-        {
-            // Create admin user
-            var user = new ApplicationUser
-            {
-                UserName = Model.Email,
-                Email = Model.Email,
-                EmailConfirmed = true
-            };
+        // Restore values from state manager if they exist
+        AdminEmail = StateManager?.Get<string>("AdminEmail") ?? string.Empty;
+        AdminPassword = StateManager?.Get<string>("AdminPassword") ?? string.Empty;
+        AdminPasswordConfirm = StateManager?.Get<string>("AdminPasswordConfirm") ?? string.Empty;
 
-            var result = await UserManager.CreateAsync(user, Model.Password);
-
-            if (!result.Succeeded)
-            {
-                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                throw new InvalidOperationException($"Failed to create admin user: {errors}");
-            }
-
-            // Add to administrator role
-            await UserManager.AddToRoleAsync(user, "Administrator");
-
-            // Store for later steps
-            StateManager.Set("AdminEmail", Model.Email);
-            StateManager.Set("AdminUserId", user.Id);
-
-            Logger.LogInformation("Created administrator account: {Email}", Model.Email);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error creating administrator account");
-            ErrorMessage = "An error occurred while creating the account. Please try again.";
-            throw;
-        }
+        Logger?.LogInformation("AdminAccountStep.OnInitialized - Email: '{Email}', PasswordLength: {Length}",
+            AdminEmail, AdminPassword?.Length ?? 0);
     }
 
-    public override async Task OnNavigatingToAsync()
+    public override Task<ValidationResult> ValidateAsync()
     {
-        // Restore previously entered data if navigating back
-        if (StateManager.TryGet<string>("AdminEmail", out var savedEmail))
+        // IMPORTANT: Load from StateManager because this method may be called
+        // on a fresh instance that wasn't rendered (lifecycle methods not called)
+        var email = StateManager.Get<string>("AdminEmail") ?? string.Empty;
+        var password = StateManager.Get<string>("AdminPassword") ?? string.Empty;
+        var confirmPassword = StateManager.Get<string>("AdminPasswordConfirm") ?? string.Empty;
+
+        ClearErrors();
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(email))
         {
-            Model.Email = savedEmail;
+            _emailError = "Administrator email is required";
+            errors.Add("Administrator email is required.");
         }
+        else if (!email.Contains("@"))
+        {
+            _emailError = "Please enter a valid email address";
+            errors.Add("Please enter a valid email address.");
+        }
+
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            _passwordError = "Administrator password is required";
+            errors.Add("Administrator password is required.");
+        }
+        else if (password.Length < 8)
+        {
+            _passwordError = "Password must be at least 8 characters long";
+            errors.Add("Password must be at least 8 characters long.");
+        }
+
+        if (password != confirmPassword)
+        {
+            _confirmPasswordError = "Passwords do not match";
+            errors.Add("Passwords do not match.");
+        }
+
+        if (errors.Any())
+        {
+            return Task.FromResult(ValidationResult.Failure(errors));
+        }
+
+        return Task.FromResult(ValidationResult.Success);
     }
 
-    private void OnFormSubmit()
+    public override Task ExecuteAsync()
     {
-        // Form is valid, EditForm validation passed
-        // Actual execution happens in ExecuteAsync
+        // Store the admin credentials in the state manager
+        StateManager.Set("AdminEmail", AdminEmail);
+        StateManager.Set("AdminPassword", AdminPassword);
+
+        Logger.LogInformation("Admin account configured: {Email}", AdminEmail);
+        return Task.CompletedTask;
+    }
+
+    private void ClearErrors()
+    {
+        _emailError = null;
+        _passwordError = null;
+        _confirmPasswordError = null;
+    }
+
+    private void OnEmailChanged(string? value)
+    {
+        AdminEmail = value ?? string.Empty;
+        StateManager.Set("AdminEmail", AdminEmail);
+        _emailError = null; // Clear error when user types
+    }
+
+    private void OnPasswordChanged(string? value)
+    {
+        AdminPassword = value ?? string.Empty;
+        StateManager.Set("AdminPassword", AdminPassword);
+        _passwordError = null; // Clear error when user types
+    }
+
+    private void OnConfirmPasswordChanged(string? value)
+    {
+        AdminPasswordConfirm = value ?? string.Empty;
+        StateManager.Set("AdminPasswordConfirm", AdminPasswordConfirm);
+        _confirmPasswordError = null; // Clear error when user types
     }
 }
 ```

@@ -84,56 +84,114 @@ Create a Blazor component that inherits from `SetupStepBase`:
 **AdminAccountStep.razor:**
 
 ```razor
+@using cpike.Setup.Middleware.Steps
+@using cpike.Setup.Middleware.Models
+@using cpike.Setup.Middleware.Components
 @inherits SetupStepBase
-@inject UserManager<ApplicationUser> UserManager
 
-<div class="step-header">
-    <h2>@Title</h2>
-    <p>@Description</p>
-</div>
+<div class="step-content">
+    <SetupAlert Severity="info" Title="Create Administrator Account">
+        This account will have full access to the application. Choose a strong password and keep it secure.
+    </SetupAlert>
 
-<div class="form-group">
-    <label>Email Address</label>
-    <input type="email" @bind="Email" class="form-input" />
-</div>
+    <SetupInput
+        Id="admin-email"
+        Label="Administrator Email"
+        InputType="email"
+        Value="@AdminEmail"
+        ValueChanged="@OnEmailChanged"
+        Placeholder="admin@example.com"
+        Required="true"
+        ErrorMessage="@_emailError"
+        HelpText="Used for account recovery and notifications" />
 
-<div class="form-group">
-    <label>Password</label>
-    <input type="password" @bind="Password" class="form-input" />
+    <SetupInput
+        Id="admin-password"
+        Label="Administrator Password"
+        InputType="password"
+        Value="@AdminPassword"
+        ValueChanged="@OnPasswordChanged"
+        Placeholder="Enter a strong password"
+        Required="true"
+        ErrorMessage="@_passwordError"
+        HelpText="Must be at least 8 characters long" />
 </div>
 
 @code {
     public override string Title => "Create Administrator Account";
-    public override string Description => "This account will have full access to all system features.";
+    public override string Description => "Set up the initial administrator account for your application.";
     public override int Order => 10;
 
-    private string Email { get; set; }
-    private string Password { get; set; }
+    private string AdminEmail { get; set; } = string.Empty;
+    private string AdminPassword { get; set; } = string.Empty;
+    private string? _emailError;
+    private string? _passwordError;
 
-    public override async Task<ValidationResult> ValidateAsync()
+    // Parameterless constructor for Blazor rendering
+    public AdminAccountStep()
     {
-        if (string.IsNullOrWhiteSpace(Email))
-            return ValidationResult.Failure("Email is required");
-
-        if (string.IsNullOrWhiteSpace(Password))
-            return ValidationResult.Failure("Password is required");
-
-        return ValidationResult.Success;
     }
 
-    public override async Task ExecuteAsync()
+    // Constructor injection for when instance is created via DI (not rendered)
+    public AdminAccountStep(ISetupStateManager stateManager, ILogger<AdminAccountStep> logger)
     {
-        var user = new ApplicationUser
-        {
-            Email = Email,
-            UserName = Email
-        };
+        StateManager = stateManager;
+        Logger = logger;
+    }
 
-        await UserManager.CreateAsync(user, Password);
-        await UserManager.AddToRoleAsync(user, "Administrator");
+    protected override void OnInitialized()
+    {
+        // Restore values from state manager if they exist
+        AdminEmail = StateManager?.Get<string>("AdminEmail") ?? string.Empty;
+        AdminPassword = StateManager?.Get<string>("AdminPassword") ?? string.Empty;
+    }
 
-        // Store for later steps
-        StateManager.Set("AdminEmail", Email);
+    public override Task<ValidationResult> ValidateAsync()
+    {
+        // IMPORTANT: Load from StateManager because this method may be called
+        // on a fresh instance that wasn't rendered (lifecycle methods not called)
+        var email = StateManager.Get<string>("AdminEmail") ?? string.Empty;
+        var password = StateManager.Get<string>("AdminPassword") ?? string.Empty;
+
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(email))
+            errors.Add("Administrator email is required.");
+        else if (!email.Contains("@"))
+            errors.Add("Please enter a valid email address.");
+
+        if (string.IsNullOrWhiteSpace(password))
+            errors.Add("Administrator password is required.");
+        else if (password.Length < 8)
+            errors.Add("Password must be at least 8 characters long.");
+
+        return errors.Any()
+            ? Task.FromResult(ValidationResult.Failure(errors))
+            : Task.FromResult(ValidationResult.Success);
+    }
+
+    public override Task ExecuteAsync()
+    {
+        // Store the admin credentials in the state manager
+        StateManager.Set("AdminEmail", AdminEmail);
+        StateManager.Set("AdminPassword", AdminPassword);
+
+        Logger.LogInformation("Admin account configured: {Email}", AdminEmail);
+        return Task.CompletedTask;
+    }
+
+    private void OnEmailChanged(string? value)
+    {
+        AdminEmail = value ?? string.Empty;
+        StateManager.Set("AdminEmail", AdminEmail);
+        _emailError = null;
+    }
+
+    private void OnPasswordChanged(string? value)
+    {
+        AdminPassword = value ?? string.Empty;
+        StateManager.Set("AdminPassword", AdminPassword);
+        _passwordError = null;
     }
 }
 ```
@@ -202,6 +260,7 @@ Override CSS custom properties to match your brand:
 ### Getting Started
 
 - **[Creating Custom Steps](docs/CREATING-CUSTOM-STEPS.md)** - Tutorial on building setup steps
+- **[Step Design & Styling Guide](docs/STEP-DESIGN-GUIDE.md)** - Best practices for creating beautiful steps
 - **[Interactive Prototype](docs/reference/setup-wizard-v2.html)** - Live demo of the setup wizard
 - **[Setup Password Protection](docs/SETUP-PASSWORD.md)** - Configure password security
 

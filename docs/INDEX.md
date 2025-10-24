@@ -20,6 +20,12 @@ New to the project? Start here:
   - State management between steps
   - Complete examples
 
+- **[Step Design & Styling Guide](STEP-DESIGN-GUIDE.md)**
+  - Best practices for creating well-designed steps
+  - Using built-in components (SetupInput, SetupToggle, etc.)
+  - Layout patterns and validation
+  - Complete examples with modern styling
+
 - **[CSS Customization](CSS-CUSTOMIZATION.md)**
   - How to customize the wizard's appearance
   - CSS custom properties reference
@@ -75,6 +81,7 @@ New to the project? Start here:
 |------|--------------|
 | Install and integrate the middleware | [README - Quick Start](../README.md#quick-start) |
 | Create a new setup step | [Creating Custom Steps](CREATING-CUSTOM-STEPS.md#quick-start) |
+| Design a well-styled step | [Step Design & Styling Guide](STEP-DESIGN-GUIDE.md) |
 | Change wizard colors | [CSS Customization - CSS Variables](CSS-CUSTOMIZATION.md#css-custom-properties) |
 | Configure password protection | [Setup Password Protection](SETUP-PASSWORD.md#configuration) |
 | Understand the architecture | [Architecture Overview](ARCHITECTURE.md#high-level-architecture) |

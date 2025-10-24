@@ -1,36 +1,69 @@
 @using cpike.Setup.Middleware.Steps
 @using cpike.Setup.Middleware.Models
+@using cpike.Setup.Middleware.Services
+@using cpike.Setup.Middleware.Components
 @inherits SetupStepBase
 
 <div class="step-content">
-    <div class="form-group">
-        <label for="dbServer">Database Server</label>
-        <input type="text" id="dbServer" class="form-control" @bind="DatabaseServer" placeholder="localhost" />
-    </div>
+    <SetupAlert Severity="info" Title="Database Configuration">
+        Configure the database connection settings for your application. This connection will be used to store application data.
+    </SetupAlert>
 
-    <div class="form-group">
-        <label for="dbName">Database Name</label>
-        <input type="text" id="dbName" class="form-control" @bind="DatabaseName" placeholder="MyApplicationDb" />
-    </div>
+    <SetupInput
+        Id="db-server"
+        Label="Database Server"
+        InputType="text"
+        Value="@DatabaseServer"
+        ValueChanged="@OnServerChanged"
+        Placeholder="localhost"
+        Required="true"
+        ErrorMessage="@_serverError"
+        HelpText="The hostname or IP address of your database server"
+        Autocomplete="off" />
 
-    <div class="form-group">
-        <label>
-            <input type="checkbox" @bind="UseWindowsAuth" />
-            Use Windows Authentication
-        </label>
-    </div>
+    <SetupInput
+        Id="db-name"
+        Label="Database Name"
+        InputType="text"
+        Value="@DatabaseName"
+        ValueChanged="@OnNameChanged"
+        Placeholder="MyApplicationDb"
+        Required="true"
+        ErrorMessage="@_nameError"
+        HelpText="The name of the database to use"
+        Autocomplete="off" />
+
+    <SetupToggle
+        Label="Use Windows Authentication"
+        Description="Use Windows Authentication instead of SQL Server authentication"
+        Checked="@UseWindowsAuth"
+        CheckedChanged="@OnWindowsAuthChanged" />
 
     @if (!UseWindowsAuth)
     {
-        <div class="form-group">
-            <label for="dbUser">Database Username</label>
-            <input type="text" id="dbUser" class="form-control" @bind="DatabaseUser" placeholder="sa" />
-        </div>
+        <SetupInput
+            Id="db-user"
+            Label="Database Username"
+            InputType="text"
+            Value="@DatabaseUser"
+            ValueChanged="@OnUserChanged"
+            Placeholder="sa"
+            Required="true"
+            ErrorMessage="@_userError"
+            HelpText="SQL Server authentication username"
+            Autocomplete="username" />
 
-        <div class="form-group">
-            <label for="dbPassword">Database Password</label>
-            <input type="password" id="dbPassword" class="form-control" @bind="DatabasePassword" placeholder="Enter password" />
-        </div>
+        <SetupInput
+            Id="db-password"
+            Label="Database Password"
+            InputType="password"
+            Value="@DatabasePassword"
+            ValueChanged="@OnPasswordChanged"
+            Placeholder="Enter password"
+            Required="true"
+            ErrorMessage="@_passwordError"
+            HelpText="SQL Server authentication password"
+            Autocomplete="current-password" />
     }
 </div>
 
@@ -45,29 +78,72 @@
     private string DatabaseUser { get; set; } = string.Empty;
     private string DatabasePassword { get; set; } = string.Empty;
 
+    private string? _serverError;
+    private string? _nameError;
+    private string? _userError;
+    private string? _passwordError;
+
+    // Parameterless constructor for Blazor rendering
+    public DatabaseConfigStep()
+    {
+    }
+
+    // Constructor injection for when instance is created via DI (not rendered)
+    public DatabaseConfigStep(ISetupStateManager stateManager, ILogger<DatabaseConfigStep> logger)
+    {
+        StateManager = stateManager;
+        Logger = logger;
+    }
+
+    protected override void OnInitialized()
+    {
+        // Restore values from state manager if they exist
+        DatabaseServer = StateManager?.Get<string>("DatabaseServer") ?? "localhost";
+        DatabaseName = StateManager?.Get<string>("DatabaseName") ?? string.Empty;
+        UseWindowsAuth = StateManager?.Get<bool?>("UseWindowsAuth") ?? false;
+        DatabaseUser = StateManager?.Get<string>("DatabaseUser") ?? string.Empty;
+        DatabasePassword = StateManager?.Get<string>("DatabasePassword") ?? string.Empty;
+
+        Logger?.LogInformation("DatabaseConfigStep.OnInitialized - Server: '{Server}', Database: '{Database}'",
+            DatabaseServer, DatabaseName);
+    }
+
     public override Task<ValidationResult> ValidateAsync()
     {
+        // IMPORTANT: Load from StateManager because this method may be called
+        // on a fresh instance that wasn't rendered (lifecycle methods not called)
+        var dbServer = StateManager.Get<string>("DatabaseServer") ?? "localhost";
+        var dbName = StateManager.Get<string>("DatabaseName") ?? string.Empty;
+        var useWinAuth = StateManager.Get<bool?>("UseWindowsAuth") ?? false;
+        var dbUser = StateManager.Get<string>("DatabaseUser") ?? string.Empty;
+        var dbPassword = StateManager.Get<string>("DatabasePassword") ?? string.Empty;
+
+        ClearErrors();
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(DatabaseServer))
+        if (string.IsNullOrWhiteSpace(dbServer))
         {
+            _serverError = "Database server is required";
             errors.Add("Database server is required.");
         }
 
-        if (string.IsNullOrWhiteSpace(DatabaseName))
+        if (string.IsNullOrWhiteSpace(dbName))
         {
+            _nameError = "Database name is required";
             errors.Add("Database name is required.");
         }
 
-        if (!UseWindowsAuth)
+        if (!useWinAuth)
         {
-            if (string.IsNullOrWhiteSpace(DatabaseUser))
+            if (string.IsNullOrWhiteSpace(dbUser))
             {
+                _userError = "Username is required when not using Windows Authentication";
                 errors.Add("Database username is required when not using Windows Authentication.");
             }
 
-            if (string.IsNullOrWhiteSpace(DatabasePassword))
+            if (string.IsNullOrWhiteSpace(dbPassword))
             {
+                _passwordError = "Password is required when not using Windows Authentication";
                 errors.Add("Database password is required when not using Windows Authentication.");
             }
         }
@@ -82,6 +158,13 @@
 
     public override Task ExecuteAsync()
     {
+        // Store values in state manager
+        StateManager.Set("DatabaseServer", DatabaseServer);
+        StateManager.Set("DatabaseName", DatabaseName);
+        StateManager.Set("UseWindowsAuth", UseWindowsAuth);
+        StateManager.Set("DatabaseUser", DatabaseUser);
+        StateManager.Set("DatabasePassword", DatabasePassword);
+
         // Build connection string
         string connectionString;
         if (UseWindowsAuth)
@@ -98,5 +181,53 @@
 
         Logger.LogInformation("Database connection configured: Server={Server}, Database={Database}", DatabaseServer, DatabaseName);
         return Task.CompletedTask;
+    }
+
+    private void ClearErrors()
+    {
+        _serverError = null;
+        _nameError = null;
+        _userError = null;
+        _passwordError = null;
+    }
+
+    private void OnServerChanged(string? value)
+    {
+        DatabaseServer = value ?? string.Empty;
+        StateManager.Set("DatabaseServer", DatabaseServer);
+        _serverError = null;
+    }
+
+    private void OnNameChanged(string? value)
+    {
+        DatabaseName = value ?? string.Empty;
+        StateManager.Set("DatabaseName", DatabaseName);
+        _nameError = null;
+    }
+
+    private void OnWindowsAuthChanged(bool value)
+    {
+        UseWindowsAuth = value;
+        StateManager.Set("UseWindowsAuth", UseWindowsAuth);
+        // Clear username/password errors when switching to Windows Auth
+        if (UseWindowsAuth)
+        {
+            _userError = null;
+            _passwordError = null;
+        }
+    }
+
+    private void OnUserChanged(string? value)
+    {
+        DatabaseUser = value ?? string.Empty;
+        StateManager.Set("DatabaseUser", DatabaseUser);
+        _userError = null;
+    }
+
+    private void OnPasswordChanged(string? value)
+    {
+        DatabasePassword = value ?? string.Empty;
+        StateManager.Set("DatabasePassword", DatabasePassword);
+        _passwordError = null;
     }
 }

@@ -1,6 +1,7 @@
 @using cpike.Setup.Middleware.Steps
 @using cpike.Setup.Middleware.Models
 @using cpike.Setup.Middleware.Components
+@using cpike.Setup.Middleware.Services
 @inherits SetupStepBase
 
 <div class="step-content">
@@ -31,9 +32,21 @@
     public override string Description => "Review your configuration and complete the setup.";
     public override int Order => 30;
 
-    private string AdminEmail => StateManager.Get<string>("AdminEmail") ?? "Not configured";
-    private string ConnectionString => StateManager.Get<string>("DatabaseConnectionString") ?? "Not configured";
-    private bool EmailNotificationsEnabled => StateManager.Get<bool>("EmailNotifications");
+    // Parameterless constructor for Blazor rendering
+    public ReviewStep()
+    {
+    }
+
+    // Constructor injection for when instance is created via DI (not rendered)
+    public ReviewStep(ISetupStateManager stateManager, ILogger<ReviewStep> logger)
+    {
+        StateManager = stateManager;
+        Logger = logger;
+    }
+
+    private string AdminEmail => StateManager?.Get<string>("AdminEmail") ?? "Not configured";
+    private string ConnectionString => StateManager?.Get<string>("DatabaseConnectionString") ?? "Not configured";
+    private bool EmailNotificationsEnabled => StateManager?.Get<bool?>("EmailNotifications") ?? false;
 
     private List<SummarySection.SummaryItem> _adminSummaryItems => new()
     {
@@ -91,7 +104,7 @@
 
     public override Task ExecuteAsync()
     {
-        Logger.LogInformation("Setup review completed. Ready to finalize setup.");
+        Logger?.LogInformation("Setup review completed. Ready to finalize setup.");
         return Task.CompletedTask;
     }
 }

@@ -213,7 +213,7 @@ public interface ISetupStep
 public abstract class SetupStepBase : ComponentBase, ISetupStep
 {
     [Inject] protected ISetupStateManager StateManager { get; set; }
-    [Inject] protected NavigationManager Navigation { get; set; }
+    [Inject] protected ILogger Logger { get; set; }
 
     public abstract string Title { get; }
     public abstract string Description { get; }
@@ -229,6 +229,48 @@ public abstract class SetupStepBase : ComponentBase, ISetupStep
 
     public virtual Task OnNavigatingToAsync()
         => Task.CompletedTask;
+}
+```
+
+**Dual Constructor Pattern for Steps**
+
+Steps implement a dual constructor pattern to support two instantiation scenarios:
+
+1. **Blazor rendering**: Uses parameterless constructor + `[Inject]` attributes
+2. **DI container**: Uses constructor injection when created by wizard service
+
+```csharp
+public class AdminAccountStep : SetupStepBase
+{
+    // Parameterless constructor for Blazor rendering
+    public AdminAccountStep()
+    {
+    }
+
+    // Constructor injection for DI instantiation (validation calls)
+    public AdminAccountStep(ISetupStateManager stateManager, ILogger<AdminAccountStep> logger)
+    {
+        StateManager = stateManager;
+        Logger = logger;
+    }
+
+    protected override void OnInitialized()
+    {
+        // Load state when rendered
+        AdminEmail = StateManager?.Get<string>("AdminEmail") ?? string.Empty;
+    }
+
+    public override Task<ValidationResult> ValidateAsync()
+    {
+        // CRITICAL: Must read from StateManager, not fields
+        // This may be called on a DI instance without rendering
+        var email = StateManager.Get<string>("AdminEmail") ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(email))
+            return Task.FromResult(ValidationResult.Failure("Email required"));
+
+        return Task.FromResult(ValidationResult.Success);
+    }
 }
 ```
 
