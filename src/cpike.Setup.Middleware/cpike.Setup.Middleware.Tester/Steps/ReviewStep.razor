@@ -1,30 +1,29 @@
 @using cpike.Setup.Middleware.Steps
 @using cpike.Setup.Middleware.Models
+@using cpike.Setup.Middleware.Components
 @inherits SetupStepBase
 
 <div class="step-content">
-    <h3>Review Your Configuration</h3>
-    <p>Please review the configuration below before completing the setup.</p>
+    <SetupAlert Severity="info">
+        Please review your configuration below. Once you click "Complete Setup", the application will be initialized with these settings.
+    </SetupAlert>
 
-    <div class="review-section">
-        <h4>Administrator Account</h4>
-        <dl>
-            <dt>Email:</dt>
-            <dd>@AdminEmail</dd>
-        </dl>
-    </div>
+    <SummarySection
+        Title="Administrator Account"
+        Description="Primary administrator credentials"
+        Items="@_adminSummaryItems" />
 
-    <div class="review-section">
-        <h4>Database Connection</h4>
-        <dl>
-            <dt>Connection String:</dt>
-            <dd><code>@MaskedConnectionString</code></dd>
-        </dl>
-    </div>
+    <SummarySection
+        Title="Database Connection"
+        Description="Database configuration settings"
+        Items="@_databaseSummaryItems" />
 
-    <div class="alert alert-info">
-        <strong>Note:</strong> Once you click "Complete Setup", the application will be initialized with these settings.
-    </div>
+    @if (EmailNotificationsEnabled)
+    {
+        <SetupAlert Severity="success">
+            Email notifications are enabled for important updates.
+        </SetupAlert>
+    }
 </div>
 
 @code {
@@ -34,6 +33,39 @@
 
     private string AdminEmail => StateManager.Get<string>("AdminEmail") ?? "Not configured";
     private string ConnectionString => StateManager.Get<string>("DatabaseConnectionString") ?? "Not configured";
+    private bool EmailNotificationsEnabled => StateManager.Get<bool>("EmailNotifications");
+
+    private List<SummarySection.SummaryItem> _adminSummaryItems => new()
+    {
+        new SummarySection.SummaryItem
+        {
+            Label = "Email Address",
+            Value = AdminEmail,
+            IsSensitive = false
+        },
+        new SummarySection.SummaryItem
+        {
+            Label = "Password",
+            Value = "••••••••",
+            IsSensitive = true
+        },
+        new SummarySection.SummaryItem
+        {
+            Label = "Email Notifications",
+            Value = EmailNotificationsEnabled ? "Enabled" : "Disabled",
+            IsSensitive = false
+        }
+    };
+
+    private List<SummarySection.SummaryItem> _databaseSummaryItems => new()
+    {
+        new SummarySection.SummaryItem
+        {
+            Label = "Connection String",
+            Value = MaskedConnectionString,
+            IsSensitive = true
+        }
+    };
 
     private string MaskedConnectionString
     {

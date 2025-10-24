@@ -1,0 +1,122 @@
+@* Setup Toggle Component - Modern toggle switch with description support *@
+
+<div class="setup-toggle-group @CssClass">
+    <div class="setup-toggle-container">
+        <label class="setup-toggle-wrapper">
+            <input
+                id="@Id"
+                type="checkbox"
+                class="setup-toggle-input"
+                checked="@Checked"
+                @onchange="HandleChange"
+                disabled="@Disabled"
+                aria-invalid="@HasError"
+                aria-describedby="@(HasError ? $"{Id}-error" : null)" />
+
+            <span class="setup-toggle-slider"></span>
+        </label>
+
+        <div class="setup-toggle-content">
+            <span class="setup-toggle-label">
+                @Label
+                @if (Required)
+                {
+                    <span class="required-indicator" aria-label="required">*</span>
+                }
+            </span>
+
+            @if (!string.IsNullOrWhiteSpace(Description))
+            {
+                <span class="setup-toggle-description">@Description</span>
+            }
+        </div>
+    </div>
+
+    @if (HasError && !string.IsNullOrWhiteSpace(ErrorMessage))
+    {
+        <div id="@($"{Id}-error")" class="setup-input-error" role="alert">
+            @ErrorMessage
+        </div>
+    }
+
+    @if (!HasError && !string.IsNullOrWhiteSpace(HelpText))
+    {
+        <div class="setup-input-help">@HelpText</div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Unique identifier for the toggle element
+    /// </summary>
+    [Parameter]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>
+    /// Label text displayed next to the toggle
+    /// </summary>
+    [Parameter]
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Description text displayed below the label
+    /// </summary>
+    [Parameter]
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// Whether the toggle is checked/on
+    /// </summary>
+    [Parameter]
+    public bool Checked { get; set; }
+
+    /// <summary>
+    /// Callback invoked when the checked state changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> CheckedChanged { get; set; }
+
+    /// <summary>
+    /// Whether the field is required
+    /// </summary>
+    [Parameter]
+    public bool Required { get; set; }
+
+    /// <summary>
+    /// Whether the toggle is disabled
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Error message to display
+    /// </summary>
+    [Parameter]
+    public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Help text displayed when there's no error
+    /// </summary>
+    [Parameter]
+    public string? HelpText { get; set; }
+
+    /// <summary>
+    /// Additional CSS classes
+    /// </summary>
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Whether the toggle has an error
+    /// </summary>
+    private bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    private async Task HandleChange(ChangeEventArgs e)
+    {
+        var newValue = e.Value is bool b ? b : false;
+        if (CheckedChanged.HasDelegate)
+        {
+            await CheckedChanged.InvokeAsync(newValue);
+        }
+    }
+}

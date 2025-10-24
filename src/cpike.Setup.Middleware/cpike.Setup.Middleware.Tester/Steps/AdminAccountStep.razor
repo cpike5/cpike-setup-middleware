@@ -1,22 +1,54 @@
 @using cpike.Setup.Middleware.Steps
 @using cpike.Setup.Middleware.Models
+@using cpike.Setup.Middleware.Components
+@using cpike.Setup.Middleware.Services
 @inherits SetupStepBase
 
 <div class="step-content">
-    <div class="form-group">
-        <label for="adminEmail">Administrator Email</label>
-        <input type="email" id="adminEmail" class="form-control" @bind="AdminEmail" placeholder="admin@example.com" />
-    </div>
+    <SetupAlert Severity="info" Title="Create Administrator Account">
+        This account will have full access to the application. Choose a strong password and keep it secure.
+    </SetupAlert>
 
-    <div class="form-group">
-        <label for="adminPassword">Administrator Password</label>
-        <input type="password" id="adminPassword" class="form-control" @bind="AdminPassword" placeholder="Enter a strong password" />
-    </div>
+    <SetupInput
+        Id="admin-email"
+        Label="Administrator Email"
+        InputType="email"
+        Value="@AdminEmail"
+        ValueChanged="@OnEmailChanged"
+        Placeholder="admin@example.com"
+        Required="true"
+        ErrorMessage="@_emailError"
+        HelpText="Used for account recovery and notifications"
+        Autocomplete="email" />
 
-    <div class="form-group">
-        <label for="adminPasswordConfirm">Confirm Password</label>
-        <input type="password" id="adminPasswordConfirm" class="form-control" @bind="AdminPasswordConfirm" placeholder="Re-enter password" />
-    </div>
+    <SetupInput
+        Id="admin-password"
+        Label="Administrator Password"
+        InputType="password"
+        Value="@AdminPassword"
+        ValueChanged="@OnPasswordChanged"
+        Placeholder="Enter a strong password"
+        Required="true"
+        ErrorMessage="@_passwordError"
+        HelpText="Must be at least 8 characters long"
+        Autocomplete="new-password" />
+
+    <SetupInput
+        Id="admin-password-confirm"
+        Label="Confirm Password"
+        InputType="password"
+        Value="@AdminPasswordConfirm"
+        ValueChanged="@OnConfirmPasswordChanged"
+        Placeholder="Re-enter password"
+        Required="true"
+        ErrorMessage="@_confirmPasswordError"
+        Autocomplete="new-password" />
+
+    <SetupToggle
+        Label="Enable email notifications"
+        Description="Receive important updates and alerts via email"
+        Checked="@_emailNotifications"
+        CheckedChanged="@((value) => _emailNotifications = value)" />
 </div>
 
 @code {
@@ -27,31 +59,71 @@
     private string AdminEmail { get; set; } = string.Empty;
     private string AdminPassword { get; set; } = string.Empty;
     private string AdminPasswordConfirm { get; set; } = string.Empty;
+    private bool _emailNotifications { get; set; } = true;
+
+    private string? _emailError;
+    private string? _passwordError;
+    private string? _confirmPasswordError;
+
+    // Parameterless constructor for Blazor rendering
+    public AdminAccountStep()
+    {
+    }
+
+    // Constructor injection for when instance is created via DI (not rendered)
+    public AdminAccountStep(ISetupStateManager stateManager, ILogger<AdminAccountStep> logger)
+    {
+        StateManager = stateManager;
+        Logger = logger;
+    }
+
+    protected override void OnInitialized()
+    {
+        // Restore values from state manager if they exist
+        AdminEmail = StateManager?.Get<string>("AdminEmail") ?? string.Empty;
+        AdminPassword = StateManager?.Get<string>("AdminPassword") ?? string.Empty;
+        AdminPasswordConfirm = StateManager?.Get<string>("AdminPasswordConfirm") ?? string.Empty;
+        _emailNotifications = StateManager?.Get<bool?>("EmailNotifications") ?? true;
+
+        Logger?.LogInformation("AdminAccountStep.OnInitialized - Email: '{Email}', PasswordLength: {Length}", AdminEmail, AdminPassword?.Length ?? 0);
+    }
 
     public override Task<ValidationResult> ValidateAsync()
     {
+        // IMPORTANT: Load from StateManager because this method may be called
+        // on a fresh instance that wasn't rendered (lifecycle methods not called)
+        var email = StateManager.Get<string>("AdminEmail") ?? string.Empty;
+        var password = StateManager.Get<string>("AdminPassword") ?? string.Empty;
+        var confirmPassword = StateManager.Get<string>("AdminPasswordConfirm") ?? string.Empty;
+
+        ClearErrors();
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(AdminEmail))
+        if (string.IsNullOrWhiteSpace(email))
         {
+            _emailError = "Administrator email is required";
             errors.Add("Administrator email is required.");
         }
-        else if (!AdminEmail.Contains("@"))
+        else if (!email.Contains("@"))
         {
+            _emailError = "Please enter a valid email address";
             errors.Add("Please enter a valid email address.");
         }
 
-        if (string.IsNullOrWhiteSpace(AdminPassword))
+        if (string.IsNullOrWhiteSpace(password))
         {
+            _passwordError = "Administrator password is required";
             errors.Add("Administrator password is required.");
         }
-        else if (AdminPassword.Length < 8)
+        else if (password.Length < 8)
         {
+            _passwordError = "Password must be at least 8 characters long";
             errors.Add("Password must be at least 8 characters long.");
         }
 
-        if (AdminPassword != AdminPasswordConfirm)
+        if (password != confirmPassword)
         {
+            _confirmPasswordError = "Passwords do not match";
             errors.Add("Passwords do not match.");
         }
 
@@ -68,8 +140,37 @@
         // Store the admin credentials in the state manager
         StateManager.Set("AdminEmail", AdminEmail);
         StateManager.Set("AdminPassword", AdminPassword);
+        StateManager.Set("EmailNotifications", _emailNotifications);
 
         Logger.LogInformation("Admin account configured: {Email}", AdminEmail);
         return Task.CompletedTask;
+    }
+
+    private void ClearErrors()
+    {
+        _emailError = null;
+        _passwordError = null;
+        _confirmPasswordError = null;
+    }
+
+    private void OnEmailChanged(string? value)
+    {
+        AdminEmail = value ?? string.Empty;
+        StateManager.Set("AdminEmail", AdminEmail);
+        _emailError = null; // Clear error when user types
+    }
+
+    private void OnPasswordChanged(string? value)
+    {
+        AdminPassword = value ?? string.Empty;
+        StateManager.Set("AdminPassword", AdminPassword);
+        _passwordError = null; // Clear error when user types
+    }
+
+    private void OnConfirmPasswordChanged(string? value)
+    {
+        AdminPasswordConfirm = value ?? string.Empty;
+        StateManager.Set("AdminPasswordConfirm", AdminPasswordConfirm);
+        _confirmPasswordError = null; // Clear error when user types
     }
 }

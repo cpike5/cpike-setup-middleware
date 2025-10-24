@@ -1,5 +1,5 @@
 ﻿@using cpike.Setup.Middleware.Tester.Components.Account.Shared
-<Router AppAssembly="typeof(Program).Assembly">
+<Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(cpike.Setup.Middleware.SetupMiddleware).Assembly }">
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
             <NotAuthorized>

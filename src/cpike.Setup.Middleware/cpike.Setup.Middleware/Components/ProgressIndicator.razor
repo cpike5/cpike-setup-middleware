@@ -1,0 +1,119 @@
+@* Progress Indicator Component - Visual step progress display *@
+@using cpike.Setup.Middleware.Steps
+
+<div class="setup-progress-indicator @CssClass">
+    @if (ShowProgressBar)
+    {
+        <div class="setup-progress-bar-container">
+            <div class="setup-progress-bar">
+                <div class="setup-progress-fill" style="width: @ProgressPercentage%"></div>
+            </div>
+            <div class="setup-progress-text">
+                Step @(CurrentStepIndex + 1) of @TotalSteps (@ProgressPercentage%)
+            </div>
+        </div>
+    }
+
+    @if (ShowStepList && Steps != null)
+    {
+        <div class="setup-progress-steps">
+            @for (int i = 0; i < Steps.Count(); i++)
+            {
+                var step = Steps.ElementAt(i);
+                var stepIndex = i;
+                var stepStatus = GetStepStatus(stepIndex);
+
+                <div class="setup-progress-step setup-progress-step-@stepStatus">
+                    <div class="setup-progress-step-indicator">
+                        @if (stepStatus == "completed")
+                        {
+                            <span class="setup-progress-step-check">✓</span>
+                        }
+                        else
+                        {
+                            <span class="setup-progress-step-number">@(stepIndex + 1)</span>
+                        }
+                    </div>
+
+                    <div class="setup-progress-step-content">
+                        <div class="setup-progress-step-title">@step.Title</div>
+                        @if (ShowStepDescriptions && !string.IsNullOrWhiteSpace(step.Description))
+                        {
+                            <div class="setup-progress-step-description">@step.Description</div>
+                        }
+                    </div>
+
+                    @if (stepIndex < TotalSteps - 1)
+                    {
+                        <div class="setup-progress-step-connector"></div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// List of all setup steps
+    /// </summary>
+    [Parameter]
+    public IEnumerable<ISetupStep>? Steps { get; set; }
+
+    /// <summary>
+    /// Current step index (0-based)
+    /// </summary>
+    [Parameter]
+    public int CurrentStepIndex { get; set; }
+
+    /// <summary>
+    /// Total number of steps
+    /// </summary>
+    [Parameter]
+    public int TotalSteps { get; set; }
+
+    /// <summary>
+    /// Progress percentage (0-100)
+    /// </summary>
+    [Parameter]
+    public int ProgressPercentage { get; set; }
+
+    /// <summary>
+    /// Whether to show the progress bar
+    /// </summary>
+    [Parameter]
+    public bool ShowProgressBar { get; set; } = true;
+
+    /// <summary>
+    /// Whether to show the list of steps
+    /// </summary>
+    [Parameter]
+    public bool ShowStepList { get; set; } = false;
+
+    /// <summary>
+    /// Whether to show step descriptions in the list
+    /// </summary>
+    [Parameter]
+    public bool ShowStepDescriptions { get; set; } = false;
+
+    /// <summary>
+    /// Additional CSS classes
+    /// </summary>
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Determines the visual status of a step
+    /// </summary>
+    /// <param name="stepIndex">The index of the step</param>
+    /// <returns>Status string: completed, current, or pending</returns>
+    private string GetStepStatus(int stepIndex)
+    {
+        if (stepIndex < CurrentStepIndex)
+            return "completed";
+        else if (stepIndex == CurrentStepIndex)
+            return "current";
+        else
+            return "pending";
+    }
+}

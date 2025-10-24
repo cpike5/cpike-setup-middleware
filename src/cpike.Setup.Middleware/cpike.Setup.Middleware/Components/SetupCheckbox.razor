@@ -1,0 +1,120 @@
+@* Setup Checkbox Component - Styled checkbox with description support *@
+
+<div class="setup-checkbox-group @CssClass">
+    <label class="setup-checkbox-container">
+        <input
+            id="@Id"
+            type="checkbox"
+            class="setup-checkbox-input"
+            checked="@Checked"
+            @onchange="HandleChange"
+            disabled="@Disabled"
+            aria-invalid="@HasError"
+            aria-describedby="@(HasError ? $"{Id}-error" : null)" />
+
+        <span class="setup-checkbox-checkmark"></span>
+
+        <span class="setup-checkbox-content">
+            <span class="setup-checkbox-label">
+                @Label
+                @if (Required)
+                {
+                    <span class="required-indicator" aria-label="required">*</span>
+                }
+            </span>
+
+            @if (!string.IsNullOrWhiteSpace(Description))
+            {
+                <span class="setup-checkbox-description">@Description</span>
+            }
+        </span>
+    </label>
+
+    @if (HasError && !string.IsNullOrWhiteSpace(ErrorMessage))
+    {
+        <div id="@($"{Id}-error")" class="setup-input-error" role="alert">
+            @ErrorMessage
+        </div>
+    }
+
+    @if (!HasError && !string.IsNullOrWhiteSpace(HelpText))
+    {
+        <div class="setup-input-help">@HelpText</div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Unique identifier for the checkbox element
+    /// </summary>
+    [Parameter]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>
+    /// Label text displayed next to the checkbox
+    /// </summary>
+    [Parameter]
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Description text displayed below the label
+    /// </summary>
+    [Parameter]
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// Whether the checkbox is checked
+    /// </summary>
+    [Parameter]
+    public bool Checked { get; set; }
+
+    /// <summary>
+    /// Callback invoked when the checked state changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> CheckedChanged { get; set; }
+
+    /// <summary>
+    /// Whether the field is required
+    /// </summary>
+    [Parameter]
+    public bool Required { get; set; }
+
+    /// <summary>
+    /// Whether the checkbox is disabled
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Error message to display
+    /// </summary>
+    [Parameter]
+    public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Help text displayed when there's no error
+    /// </summary>
+    [Parameter]
+    public string? HelpText { get; set; }
+
+    /// <summary>
+    /// Additional CSS classes
+    /// </summary>
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Whether the checkbox has an error
+    /// </summary>
+    private bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    private async Task HandleChange(ChangeEventArgs e)
+    {
+        var newValue = e.Value is bool b ? b : false;
+        if (CheckedChanged.HasDelegate)
+        {
+            await CheckedChanged.InvokeAsync(newValue);
+        }
+    }
+}

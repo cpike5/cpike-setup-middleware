@@ -1,0 +1,112 @@
+@* Summary Section Component - Display configuration summary with masked sensitive data *@
+
+<div class="setup-summary-section @CssClass">
+    @if (!string.IsNullOrWhiteSpace(Title))
+    {
+        <h3 class="setup-summary-title">@Title</h3>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Description))
+    {
+        <p class="setup-summary-description">@Description</p>
+    }
+
+    @if (Items != null && Items.Any())
+    {
+        <div class="setup-summary-items">
+            @foreach (var item in Items)
+            {
+                <div class="setup-summary-item">
+                    <div class="setup-summary-item-label">@item.Label</div>
+                    <div class="setup-summary-item-value @(item.IsSensitive ? "sensitive" : "")">
+                        @if (item.IsSensitive)
+                        {
+                            @GetMaskedValue(item.Value)
+                        }
+                        else
+                        {
+                            @item.Value
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (ChildContent != null)
+    {
+        <div class="setup-summary-content">
+            @ChildContent
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Section title
+    /// </summary>
+    [Parameter]
+    public string? Title { get; set; }
+
+    /// <summary>
+    /// Section description
+    /// </summary>
+    [Parameter]
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// List of summary items to display
+    /// </summary>
+    [Parameter]
+    public IEnumerable<SummaryItem>? Items { get; set; }
+
+    /// <summary>
+    /// Custom content
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Additional CSS classes
+    /// </summary>
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Masks sensitive values for display
+    /// </summary>
+    /// <param name="value">The value to mask</param>
+    /// <returns>Masked value string</returns>
+    private string GetMaskedValue(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        if (value.Length <= 4)
+            return new string('*', value.Length);
+
+        // Show first 2 and last 2 characters, mask the rest
+        return $"{value.Substring(0, 2)}{new string('*', value.Length - 4)}{value.Substring(value.Length - 2)}";
+    }
+
+    /// <summary>
+    /// Represents a single item in the summary
+    /// </summary>
+    public class SummaryItem
+    {
+        /// <summary>
+        /// Label for the item
+        /// </summary>
+        public string Label { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Value to display
+        /// </summary>
+        public string? Value { get; set; }
+
+        /// <summary>
+        /// Whether this is sensitive data that should be masked
+        /// </summary>
+        public bool IsSensitive { get; set; }
+    }
+}

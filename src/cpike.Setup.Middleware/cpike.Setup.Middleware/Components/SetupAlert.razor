@@ -1,0 +1,102 @@
+@* Setup Alert Component - Alert messages with multiple severity levels *@
+
+<div class="setup-alert setup-alert-@Severity @CssClass" role="@Role">
+    @if (Dismissible)
+    {
+        <button
+            type="button"
+            class="setup-alert-close"
+            @onclick="HandleDismiss"
+            aria-label="Close alert">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    }
+
+    <div class="setup-alert-content">
+        @if (!string.IsNullOrWhiteSpace(Title))
+        {
+            <div class="setup-alert-title">@Title</div>
+        }
+
+        <div class="setup-alert-message">
+            @if (ChildContent != null)
+            {
+                @ChildContent
+            }
+            else
+            {
+                @Message
+            }
+        </div>
+
+        @if (Actions != null)
+        {
+            <div class="setup-alert-actions">
+                @Actions
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Alert severity (success, info, warning, error)
+    /// </summary>
+    [Parameter]
+    public string Severity { get; set; } = "info";
+
+    /// <summary>
+    /// Alert title (optional)
+    /// </summary>
+    [Parameter]
+    public string? Title { get; set; }
+
+    /// <summary>
+    /// Alert message text
+    /// </summary>
+    [Parameter]
+    public string? Message { get; set; }
+
+    /// <summary>
+    /// Alert content (alternative to Message)
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Optional action buttons
+    /// </summary>
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+
+    /// <summary>
+    /// Whether the alert can be dismissed
+    /// </summary>
+    [Parameter]
+    public bool Dismissible { get; set; }
+
+    /// <summary>
+    /// Additional CSS classes
+    /// </summary>
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Callback invoked when alert is dismissed
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDismiss { get; set; }
+
+    /// <summary>
+    /// ARIA role for accessibility
+    /// </summary>
+    private string Role => Severity == "error" ? "alert" : "status";
+
+    private async Task HandleDismiss()
+    {
+        if (OnDismiss.HasDelegate)
+        {
+            await OnDismiss.InvokeAsync();
+        }
+    }
+}

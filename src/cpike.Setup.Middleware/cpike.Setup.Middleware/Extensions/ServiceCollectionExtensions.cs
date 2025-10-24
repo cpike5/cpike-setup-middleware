@@ -40,8 +40,9 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ISetupStateManager, SetupStateManager>();
         services.TryAddScoped<ISetupWizardService, SetupWizardService>();
         services.TryAddSingleton<ISetupPasswordService, SetupPasswordService>();
+        services.TryAddSingleton<IPasswordVerificationState, PasswordVerificationStateService>();
 
-        // Register HttpContextAccessor (required for password service session management)
+        // Register HttpContextAccessor (required for password service client identification)
         services.AddHttpContextAccessor();
 
         // Configure setup options with default values
@@ -57,7 +58,7 @@ public static class ServiceCollectionExtensions
 
         // Store step registrations for wizard service to consume
         var steps = builder.GetSteps();
-        services.AddSingleton(steps);
+        services.AddSingleton<IEnumerable<Models.StepRegistration>>(_ => steps);
 
         return services;
     }

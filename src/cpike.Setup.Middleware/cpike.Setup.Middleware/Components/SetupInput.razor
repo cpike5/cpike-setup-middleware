@@ -1,0 +1,155 @@
+@* Setup Input Component - Styled text input with validation support *@
+
+<div class="setup-input-group @CssClass">
+    @if (!string.IsNullOrWhiteSpace(Label))
+    {
+        <label for="@Id" class="setup-input-label">
+            @Label
+            @if (Required)
+            {
+                <span class="required-indicator" aria-label="required">*</span>
+            }
+        </label>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Description))
+    {
+        <p class="setup-input-description">@Description</p>
+    }
+
+    <input
+        id="@Id"
+        type="@InputType"
+        class="setup-input @(HasError ? "has-error" : "")"
+        placeholder="@Placeholder"
+        value="@Value"
+        @oninput="HandleInput"
+        @onchange="HandleChange"
+        disabled="@Disabled"
+        readonly="@ReadOnly"
+        required="@Required"
+        aria-invalid="@HasError"
+        aria-describedby="@(HasError ? $"{Id}-error" : null)"
+        autocomplete="@Autocomplete" />
+
+    @if (HasError && !string.IsNullOrWhiteSpace(ErrorMessage))
+    {
+        <div id="@($"{Id}-error")" class="setup-input-error" role="alert">
+            @ErrorMessage
+        </div>
+    }
+
+    @if (!HasError && !string.IsNullOrWhiteSpace(HelpText))
+    {
+        <div class="setup-input-help">@HelpText</div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Unique identifier for the input element
+    /// </summary>
+    [Parameter]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>
+    /// Label text displayed above the input
+    /// </summary>
+    [Parameter]
+    public string? Label { get; set; }
+
+    /// <summary>
+    /// Description text displayed below the label
+    /// </summary>
+    [Parameter]
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// The current value of the input
+    /// </summary>
+    [Parameter]
+    public string? Value { get; set; }
+
+    /// <summary>
+    /// Callback invoked when the value changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Input type (text, email, password, tel, url, number)
+    /// </summary>
+    [Parameter]
+    public string InputType { get; set; } = "text";
+
+    /// <summary>
+    /// Placeholder text
+    /// </summary>
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    /// <summary>
+    /// Whether the field is required
+    /// </summary>
+    [Parameter]
+    public bool Required { get; set; }
+
+    /// <summary>
+    /// Whether the input is disabled
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Whether the input is read-only
+    /// </summary>
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    /// <summary>
+    /// Error message to display
+    /// </summary>
+    [Parameter]
+    public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Help text displayed when there's no error
+    /// </summary>
+    [Parameter]
+    public string? HelpText { get; set; }
+
+    /// <summary>
+    /// Additional CSS classes
+    /// </summary>
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Autocomplete attribute value
+    /// </summary>
+    [Parameter]
+    public string? Autocomplete { get; set; }
+
+    /// <summary>
+    /// Whether the input has an error
+    /// </summary>
+    private bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    private async Task HandleInput(ChangeEventArgs e)
+    {
+        var newValue = e.Value?.ToString();
+        if (ValueChanged.HasDelegate)
+        {
+            await ValueChanged.InvokeAsync(newValue);
+        }
+    }
+
+    private async Task HandleChange(ChangeEventArgs e)
+    {
+        var newValue = e.Value?.ToString();
+        if (ValueChanged.HasDelegate)
+        {
+            await ValueChanged.InvokeAsync(newValue);
+        }
+    }
+}

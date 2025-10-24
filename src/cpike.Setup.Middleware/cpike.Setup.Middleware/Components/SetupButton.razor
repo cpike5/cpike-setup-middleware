@@ -1,0 +1,101 @@
+@* Setup Button Component - Styled button with multiple variants *@
+
+<button
+    id="@Id"
+    type="@ButtonType"
+    class="setup-button setup-button-@Variant @(FullWidth ? "full-width" : "") @CssClass"
+    @onclick="HandleClick"
+    disabled="@(Disabled || IsLoading)"
+    aria-busy="@IsLoading">
+
+    @if (IsLoading)
+    {
+        <span class="setup-button-spinner"></span>
+        <span class="setup-button-text">@LoadingText</span>
+    }
+    else if (Icon != null)
+    {
+        <span class="setup-button-icon">@Icon</span>
+        <span class="setup-button-text">@ChildContent</span>
+    }
+    else
+    {
+        <span class="setup-button-text">@ChildContent</span>
+    }
+</button>
+
+@code {
+    /// <summary>
+    /// Unique identifier for the button element
+    /// </summary>
+    [Parameter]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>
+    /// Button content
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Button type (button, submit, reset)
+    /// </summary>
+    [Parameter]
+    public string ButtonType { get; set; } = "button";
+
+    /// <summary>
+    /// Visual variant (primary, secondary, success, danger, warning, info, link)
+    /// </summary>
+    [Parameter]
+    public string Variant { get; set; } = "primary";
+
+    /// <summary>
+    /// Whether the button is disabled
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Whether the button is in loading state
+    /// </summary>
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    /// <summary>
+    /// Text to display when loading
+    /// </summary>
+    [Parameter]
+    public string LoadingText { get; set; } = "Loading...";
+
+    /// <summary>
+    /// Whether the button should take full width
+    /// </summary>
+    [Parameter]
+    public bool FullWidth { get; set; }
+
+    /// <summary>
+    /// Optional icon to display before text
+    /// </summary>
+    [Parameter]
+    public RenderFragment? Icon { get; set; }
+
+    /// <summary>
+    /// Additional CSS classes
+    /// </summary>
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Click event callback
+    /// </summary>
+    [Parameter]
+    public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    private async Task HandleClick(MouseEventArgs e)
+    {
+        if (!Disabled && !IsLoading && OnClick.HasDelegate)
+        {
+            await OnClick.InvokeAsync(e);
+        }
+    }
+}

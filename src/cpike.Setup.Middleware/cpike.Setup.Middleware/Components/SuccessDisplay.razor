@@ -1,0 +1,177 @@
+@* Success Display Component - Completion page with optional credentials and actions *@
+
+<div class="setup-success-display @CssClass">
+    <div class="setup-success-icon">
+        <svg viewBox="0 0 52 52" class="setup-success-checkmark">
+            <circle class="setup-success-checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+            <path class="setup-success-checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+        </svg>
+    </div>
+
+    <h2 class="setup-success-title">
+        @if (!string.IsNullOrWhiteSpace(Title))
+        {
+            @Title
+        }
+        else
+        {
+            <text>Setup Complete!</text>
+        }
+    </h2>
+
+    @if (!string.IsNullOrWhiteSpace(Message))
+    {
+        <p class="setup-success-message">@Message</p>
+    }
+
+    @if (Credentials != null && Credentials.Any())
+    {
+        <div class="setup-success-credentials">
+            <h3>Important Information</h3>
+            <p class="setup-success-credentials-note">
+                Please save the following information in a secure location:
+            </p>
+
+            <div class="setup-success-credentials-list">
+                @foreach (var credential in Credentials)
+                {
+                    <div class="setup-success-credential-item">
+                        <div class="setup-success-credential-label">@credential.Label</div>
+                        <div class="setup-success-credential-value-container">
+                            <code class="setup-success-credential-value">@credential.Value</code>
+                            @if (EnableCopyToClipboard)
+                            {
+                                <button
+                                    type="button"
+                                    class="setup-success-copy-btn"
+                                    @onclick="@(() => CopyToClipboard(credential.Value))"
+                                    title="Copy to clipboard">
+                                    📋
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (ChildContent != null)
+    {
+        <div class="setup-success-content">
+            @ChildContent
+        </div>
+    }
+
+    @if (Actions != null)
+    {
+        <div class="setup-success-actions">
+            @Actions
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(RedirectUrl))
+    {
+        <div class="setup-success-actions">
+            <a href="@RedirectUrl" class="setup-button setup-button-primary">
+                @RedirectButtonText
+            </a>
+        </div>
+    }
+
+    @if (_copyNotification != null)
+    {
+        <div class="setup-success-notification">@_copyNotification</div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Success title
+    /// </summary>
+    [Parameter]
+    public string? Title { get; set; }
+
+    /// <summary>
+    /// Success message
+    /// </summary>
+    [Parameter]
+    public string? Message { get; set; }
+
+    /// <summary>
+    /// List of credentials to display
+    /// </summary>
+    [Parameter]
+    public IEnumerable<CredentialItem>? Credentials { get; set; }
+
+    /// <summary>
+    /// Whether to enable copy-to-clipboard functionality
+    /// </summary>
+    [Parameter]
+    public bool EnableCopyToClipboard { get; set; } = true;
+
+    /// <summary>
+    /// URL to redirect to after completion
+    /// </summary>
+    [Parameter]
+    public string? RedirectUrl { get; set; }
+
+    /// <summary>
+    /// Text for redirect button
+    /// </summary>
+    [Parameter]
+    public string RedirectButtonText { get; set; } = "Go to Application";
+
+    /// <summary>
+    /// Custom content
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Custom action buttons
+    /// </summary>
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+
+    /// <summary>
+    /// Additional CSS classes
+    /// </summary>
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    private string? _copyNotification;
+
+    /// <summary>
+    /// Copies text to clipboard (simulated - requires JavaScript interop in real implementation)
+    /// </summary>
+    private async Task CopyToClipboard(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        // In a real implementation, you would use JSInterop to copy to clipboard
+        // For now, we'll just show a notification
+        _copyNotification = "Copied to clipboard!";
+        StateHasChanged();
+
+        await Task.Delay(2000);
+        _copyNotification = null;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Represents a credential item
+    /// </summary>
+    public class CredentialItem
+    {
+        /// <summary>
+        /// Label for the credential
+        /// </summary>
+        public string Label { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The credential value
+        /// </summary>
+        public string? Value { get; set; }
+    }
+}

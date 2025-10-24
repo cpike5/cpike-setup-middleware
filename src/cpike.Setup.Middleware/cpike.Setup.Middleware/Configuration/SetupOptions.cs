@@ -59,4 +59,12 @@ public class SetupOptions
     /// When enabled, a secure password will be generated and logged to the console.
     /// </summary>
     public bool RequirePassword { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the setup password should be saved to a file.
+    /// Default is false (password only shown in console).
+    /// When true, password is saved to .setup-password file in MarkerDirectory for headless/production scenarios.
+    /// WARNING: The password file will contain plaintext and should be protected with file system permissions.
+    /// </summary>
+    public bool SavePasswordToFile { get; set; } = false;
 }

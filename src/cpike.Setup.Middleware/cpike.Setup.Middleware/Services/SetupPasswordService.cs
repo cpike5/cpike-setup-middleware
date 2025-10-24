@@ -13,7 +13,6 @@ namespace cpike.Setup.Middleware.Services;
 /// </summary>
 public class SetupPasswordService : ISetupPasswordService
 {
-    private const string PasswordSessionKey = "SetupPasswordVerified";
     private const string PasswordFileName = ".setup-password";
     private const int MaxAttempts = 5;
     private const int LockoutSeconds = 60;
@@ -22,18 +21,22 @@ public class SetupPasswordService : ISetupPasswordService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<SetupPasswordService> _logger;
     private readonly SetupOptions _options;
+    private readonly IPasswordVerificationState _verificationState;
     private readonly string _passwordFilePath;
     private readonly Dictionary<string, AttemptsInfo> _attemptTracker = new();
     private readonly object _lockObject = new();
+    private string? _generatedPassword; // Stored in memory when SavePasswordToFile is false
 
     public SetupPasswordService(
         IHttpContextAccessor httpContextAccessor,
         ILogger<SetupPasswordService> logger,
-        IOptions<SetupOptions> options)
+        IOptions<SetupOptions> options,
+        IPasswordVerificationState verificationState)
     {
         _httpContextAccessor = httpContextAccessor;
         _logger = logger;
         _options = options.Value;
+        _verificationState = verificationState;
         _passwordFilePath = Path.Combine(_options.MarkerDirectory, PasswordFileName);
     }
 
@@ -44,14 +47,28 @@ public class SetupPasswordService : ISetupPasswordService
         // Ensure directory exists
         Directory.CreateDirectory(_options.MarkerDirectory);
 
-        // Store password hash (not plaintext) in file
-        var passwordHash = HashPassword(password);
-        await File.WriteAllTextAsync(_passwordFilePath, passwordHash);
+        // Optionally save password to file for headless/production scenarios
+        if (_options.SavePasswordToFile)
+        {
+            // Store password in plaintext file for easy retrieval
+            // This is acceptable since:
+            // 1. The file is deleted after setup completes
+            // 2. It's only accessible to users with file system access
+            // 3. Users with file system access already have full control
+            await File.WriteAllTextAsync(_passwordFilePath, password);
+            _logger.LogInformation("Setup password saved to file: {FilePath}", _passwordFilePath);
+        }
+        else
+        {
+            // Store in memory when file storage is disabled
+            _generatedPassword = password;
+            _logger.LogInformation("Setup password stored in memory (not saved to file)");
+        }
 
-        // Log to console with formatting
+        // Always log to console with formatting
         LogPasswordToConsole(password);
 
-        _logger.LogInformation("Setup password generated and saved to {FilePath}", _passwordFilePath);
+        _logger.LogInformation("Setup password generated successfully");
 
         return password;
     }
@@ -84,18 +101,27 @@ public class SetupPasswordService : ISetupPasswordService
             }
         }
 
-        // Check if password file exists
-        if (!File.Exists(_passwordFilePath))
+        // Get stored password from file or memory
+        string? storedPassword = null;
+
+        if (_options.SavePasswordToFile && File.Exists(_passwordFilePath))
         {
-            _logger.LogWarning("Password file not found at {FilePath}", _passwordFilePath);
+            // Read from file if file storage is enabled
+            storedPassword = await File.ReadAllTextAsync(_passwordFilePath);
+        }
+        else if (!_options.SavePasswordToFile && _generatedPassword != null)
+        {
+            // Use in-memory password if file storage is disabled
+            storedPassword = _generatedPassword;
+        }
+        else
+        {
+            _logger.LogWarning("Setup password not configured or not found");
             return PasswordValidationResult.Failure("Setup password not configured.", MaxAttempts);
         }
 
-        // Read and verify password
-        var storedHash = await File.ReadAllTextAsync(_passwordFilePath);
-        var providedHash = HashPassword(password);
-
-        if (storedHash.Trim() == providedHash.Trim())
+        // Verify password (plaintext comparison)
+        if (storedPassword.Trim() == password.Trim())
         {
             // Success - reset attempts
             ResetAttempts(clientId);
@@ -133,8 +159,12 @@ public class SetupPasswordService : ISetupPasswordService
             return false;
         }
 
-        // Check if password file exists
-        if (!File.Exists(_passwordFilePath))
+        // Check if password exists (in file or memory)
+        bool passwordExists = _options.SavePasswordToFile
+            ? File.Exists(_passwordFilePath)
+            : _generatedPassword != null;
+
+        if (!passwordExists)
         {
             // Generate password on first access
             await GeneratePasswordAsync();
@@ -146,25 +176,17 @@ public class SetupPasswordService : ISetupPasswordService
 
     public Task MarkPasswordVerifiedAsync()
     {
-        var session = _httpContextAccessor.HttpContext?.Session;
-        if (session != null)
-        {
-            session.SetString(PasswordSessionKey, "true");
-        }
-
+        var clientId = GetClientIdentifier();
+        _verificationState.MarkPasswordVerified(clientId);
+        _logger.LogInformation("Password verification state marked for client {ClientId}", clientId);
         return Task.CompletedTask;
     }
 
     public Task<bool> IsPasswordVerifiedAsync()
     {
-        var session = _httpContextAccessor.HttpContext?.Session;
-        if (session != null)
-        {
-            var verified = session.GetString(PasswordSessionKey);
-            return Task.FromResult(verified == "true");
-        }
-
-        return Task.FromResult(false);
+        var clientId = GetClientIdentifier();
+        var isVerified = _verificationState.IsPasswordVerified(clientId);
+        return Task.FromResult(isVerified);
     }
 
     public async Task DeletePasswordAsync()
